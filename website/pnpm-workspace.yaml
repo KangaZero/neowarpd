@@ -1,0 +1,13 @@
+# pnpm 11 reads package settings from here, not package.json.
+# Allow only these dependencies to run install/build scripts (esbuild fetches its
+# native binary; vue-demi runs a Vue-version switch). Everything else stays
+# script-blocked for supply-chain safety.
+allowBuilds:
+  esbuild: true
+  vue-demi: true
+
+# Supply-chain cooldown: refuse any package version published less than 1 week
+# (10080 minutes) ago. A malicious release is almost always spotted and
+# unpublished within days, so this window keeps compromised versions out of the
+# lockfile without slowing down normal upgrades.
+minimumReleaseAge: 10080

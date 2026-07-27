@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="neomouse">
+  <title>neomouse</title>
+  <rect width="32" height="32" rx="7" fill="#0e0f13" />
+  <path d="M8 10l6 6-6 6" fill="none" stroke="#3ddc84" stroke-width="2.6"
+    stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="17" y="20" width="8" height="2.6" rx="1.3" fill="#3ddc84" />
+</svg>

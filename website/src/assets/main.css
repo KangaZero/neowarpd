@@ -1,0 +1,266 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Tailwind v4: dark mode driven by a `.dark` class on <html> (not the media
+   query) so the theme toggle can override the OS preference. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Palette: terminal-dark base with macOS-native accents.
+  - Neutrals are cool near-blacks (macOS "vibrancy" dark surfaces).
+  - Primary is macOS system blue (#0a84ff family) for interactive elements.
+  - Two terminal accents (phosphor green + amber) carry the hacker identity:
+    green = "go / active", amber = "pending / count".
+  Everything is oklch so lightness scales perceptually across the ramp.
+*/
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.22 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.01 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.01 260);
+  --primary: oklch(0.55 0.19 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.95 0.004 250);
+  --secondary-foreground: oklch(0.25 0.01 260);
+  --muted: oklch(0.96 0.003 250);
+  --muted-foreground: oklch(0.5 0.01 260);
+  --accent: oklch(0.95 0.004 250);
+  --accent-foreground: oklch(0.25 0.01 260);
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.004 250);
+  --input: oklch(0.9 0.004 250);
+  --ring: oklch(0.55 0.19 255);
+
+  --term-green: oklch(0.62 0.16 150);
+  --term-amber: oklch(0.68 0.15 75);
+}
+
+.dark {
+  --background: oklch(0.17 0.005 260);
+  --foreground: oklch(0.92 0.008 250);
+  --card: oklch(0.205 0.006 260);
+  --card-foreground: oklch(0.92 0.008 250);
+  --popover: oklch(0.195 0.006 260);
+  --popover-foreground: oklch(0.92 0.008 250);
+  --primary: oklch(0.68 0.16 250);
+  --primary-foreground: oklch(0.16 0.01 260);
+  --secondary: oklch(0.26 0.008 260);
+  --secondary-foreground: oklch(0.92 0.008 250);
+  --muted: oklch(0.24 0.006 260);
+  --muted-foreground: oklch(0.68 0.01 250);
+  --accent: oklch(0.28 0.01 260);
+  --accent-foreground: oklch(0.94 0.008 250);
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.68 0.16 250);
+
+  --term-green: oklch(0.82 0.19 150);
+  --term-amber: oklch(0.83 0.15 75);
+}
+
+/* Map design tokens to Tailwind's color/utility namespace so `bg-background`,
+   `text-term-green`, `rounded-lg`, etc. resolve. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-term-green: var(--term-green);
+  --color-term-amber: var(--term-amber);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
+    sans-serif;
+  --font-mono:
+    "SF Mono", "JetBrains Mono", ui-monospace, "Menlo", "Cascadia Code",
+    monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Room for the fixed nav when jumping to #anchors. */
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-mono);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Respect users who ask for less motion — disable the scroll animations. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+  Vimdoc / `:help`-style prose for rendered Markdown. Section headings get a
+  full-width rule (the `======` separator), tags render as green anchors, and
+  code stays monospace throughout. Unscoped on purpose — it targets the raw tags
+  that unplugin-vue-markdown emits.
+*/
+.prose-vim {
+  font-family: var(--font-mono);
+  line-height: 1.7;
+  color: var(--color-foreground);
+}
+.prose-vim h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.prose-vim h1::before {
+  content: "*";
+  color: var(--color-term-green);
+  margin-right: 0.4rem;
+}
+.prose-vim h2 {
+  margin-top: 2.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-term-green);
+}
+.prose-vim h3 {
+  margin-top: 1.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-term-amber);
+}
+.prose-vim p,
+.prose-vim ul,
+.prose-vim ol {
+  margin-top: 1rem;
+}
+.prose-vim ul {
+  list-style: none;
+  padding-left: 1.25rem;
+}
+.prose-vim ul > li::before {
+  content: "•";
+  color: var(--color-term-green);
+  margin-left: -1.25rem;
+  margin-right: 0.6rem;
+}
+.prose-vim ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+.prose-vim li {
+  margin-top: 0.35rem;
+}
+.prose-vim a {
+  color: var(--color-primary);
+  text-underline-offset: 3px;
+}
+.prose-vim a:hover {
+  text-decoration: underline;
+}
+.prose-vim :not(pre) > code {
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+  color: var(--color-term-green);
+}
+.prose-vim pre {
+  margin-top: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.prose-vim blockquote {
+  margin-top: 1.25rem;
+  border-left: 3px solid var(--color-term-amber);
+  padding-left: 1rem;
+  color: var(--color-muted-foreground);
+}
+.prose-vim table {
+  margin-top: 1.25rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.prose-vim th,
+.prose-vim td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.prose-vim th {
+  background: var(--color-muted);
+  color: var(--color-term-green);
+}
+/* Shiki emits both themes; show the one matching the active mode. */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+
+/* Subtle terminal grid backdrop used behind the hero. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+  background-size: 2.5rem 2.5rem;
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    black 40%,
+    transparent 75%
+  );
+}

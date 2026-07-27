@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.preview/
+*.tsbuildinfo
+
+# Nix / direnv
+.direnv/
+result
+
+# Editor / OS
+.DS_Store

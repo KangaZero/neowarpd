@@ -1,0 +1,61 @@
+# [!IMPORTANT] Human review needed — AI-generated, unreviewed. See AI_POLICY.md.
+# neomouse website task runner. One Biome (node_modules) drives hook, CI, and just.
+# Run `just` with no args to list recipes.
+
+_default:
+    @just --list
+
+# Install dependencies (honors the pnpm release-age cooldown + build allowlist).
+install:
+    pnpm install
+
+# Start the Vite dev server.
+dev:
+    pnpm dev
+
+# Production build into ./dist (also emits 404.html for GitHub Pages SPA routing).
+build:
+    pnpm build
+
+# Auto-fix + format everything (Biome, writes in place).
+fix:
+    pnpm fix
+
+# Lint + format check, no writes (what CI runs).
+lint:
+    pnpm lint
+
+# Type-check .vue + .ts with vue-tsc.
+typecheck:
+    pnpm typecheck
+
+# Run the test suite once (non-watch).
+test:
+    pnpm test
+
+# Full gate: everything CI runs, in the same order.
+verify: lint typecheck test build
+
+# Regenerate ../man/neomouse.1.generated from the docs Markdown (needs pandoc).
+gen-man:
+    pnpm gen-man
+
+# Preview the production build exactly as GitHub Pages serves it (/neomouse/).
+preview: build
+    pnpm preview
+
+# Remove build artifacts.
+clean:
+    rm -rf dist
+
+# Gate locally, then push the current branch.
+push: verify
+    git push
+
+# Deploy = merge website changes to main; the GitHub Actions workflow
+# (.github/workflows/website-pages.yml) builds + publishes to Pages on push.
+# Run this from the website branch once the PR is ready.
+deploy: verify
+    @echo "Pushing current branch; open/merge a PR into main to trigger the Pages deploy."
+    git push
+    @echo "Then: gh pr create --base main   (or merge on GitHub)"
