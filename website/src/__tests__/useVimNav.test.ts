@@ -41,13 +41,13 @@ describe("useVimNav", () => {
     })
   })
 
-  it("scrolls down by the pending count on 'j', then resets it", () => {
+  it("pages down by the pending count on 'j', then resets it", () => {
     withNav(() => {
       press("3")
       press("j")
       expect(window.scrollBy).toHaveBeenCalledWith({
         behavior: "smooth",
-        top: 3 * 90,
+        top: 3 * (window.innerHeight - 60),
       })
       expect(ui.pendingCount).toBe("")
     })
@@ -64,13 +64,13 @@ describe("useVimNav", () => {
     })
   })
 
-  it("scrolls up by the pending count on 'k'", () => {
+  it("pages up by the pending count on 'k'", () => {
     withNav(() => {
       press("2")
       press("k")
       expect(window.scrollBy).toHaveBeenCalledWith({
         behavior: "smooth",
-        top: -2 * 90,
+        top: -2 * (window.innerHeight - 60),
       })
     })
   })

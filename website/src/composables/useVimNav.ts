@@ -20,7 +20,11 @@ export function useVimNav(): void {
   // The previous non-digit key, for two-key motions (gg).
   let lastKey = ""
 
-  const SCROLL_STEP = 90
+  // How much of the previous screen stays visible after a page jump — mirrors
+  // the small overlap the native PageDown/PageUp keys keep so you don't lose
+  // your place. One "page" = viewport height minus this.
+  const PAGE_OVERLAP = 60
+  const pageSize = () => window.innerHeight - PAGE_OVERLAP
 
   // --- action helpers -------------------------------------------------------
   // The keymap you write below calls into these. `n` is the resolved count
@@ -35,11 +39,13 @@ export function useVimNav(): void {
     halfPageUp() {
       window.scrollBy({ behavior: "smooth", top: -window.innerHeight / 2 })
     },
-    scrollLines(n: number) {
-      window.scrollBy({ behavior: "smooth", top: n * SCROLL_STEP })
+    /** Page down `n` screens, like pressing PageDown n times. */
+    pageDown(n: number) {
+      window.scrollBy({ behavior: "smooth", top: n * pageSize() })
     },
-    scrollUpLines(n: number) {
-      window.scrollBy({ behavior: "smooth", top: -n * SCROLL_STEP })
+    /** Page up `n` screens, like pressing PageUp n times. */
+    pageUp(n: number) {
+      window.scrollBy({ behavior: "smooth", top: -n * pageSize() })
     },
     toBottom() {
       window.scrollTo({ behavior: "smooth", top: document.body.scrollHeight })
@@ -85,9 +91,9 @@ export function useVimNav(): void {
 
     const n = ui.pendingCount ? Number.parseInt(ui.pendingCount, 10) : 1
 
-    // Worked example 1 — single-key motion. "j" scrolls down by the count.
+    // "j" pages down by the count (PageDown behaviour).
     if (key === "j") {
-      actions.scrollLines(n)
+      actions.pageDown(n)
       event.preventDefault()
     }
 
@@ -98,10 +104,10 @@ export function useVimNav(): void {
       event.preventDefault()
     }
 
-    // Remaining motions. Single-line scrolls respect the count `n` (like Vim);
-    // half-page jumps are fixed-size (Vim's Ctrl-d/Ctrl-u ignore the count too).
+    // Remaining motions. Page jumps respect the count `n`; half-page jumps are
+    // fixed-size (Vim's Ctrl-d/Ctrl-u ignore the count too).
     if (key === "k") {
-      actions.scrollUpLines(n)
+      actions.pageUp(n)
       event.preventDefault()
     } else if (key === "d") {
       actions.halfPageDown()

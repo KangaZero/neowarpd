@@ -8,8 +8,8 @@ const emit = defineEmits<{ close: [] }>()
 const groups = [
   {
     binds: [
-      { desc: "scroll down", keys: ["j"] },
-      { desc: "scroll up", keys: ["k"] },
+      { desc: "page down", keys: ["j"] },
+      { desc: "page up", keys: ["k"] },
       { desc: "half page down", keys: ["d"] },
       { desc: "half page up", keys: ["u"] },
       { desc: "top of page", keys: ["g", "g"] },
