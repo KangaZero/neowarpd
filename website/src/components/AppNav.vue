@@ -3,6 +3,7 @@ import { Menu, X } from "@lucide/vue"
 import { ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import GitHubIcon from "@/components/icons/GitHubIcon.vue"
+import ScrambleText from "@/components/ScrambleText.vue"
 import ThemeToggle from "@/components/ThemeToggle.vue"
 import { Button } from "@/components/ui/button"
 import { NAV_LINKS, SITE } from "@/data/site"
@@ -27,10 +28,13 @@ watch(
         to="/"
         class="group flex items-center gap-2 font-mono font-semibold text-base tracking-tight"
       >
-        <span class="text-term-green">❯</span>
-        <span>neomouse</span>
         <span
-          class="h-4 w-2 animate-pulse bg-term-green group-hover:bg-primary"
+          class="text-term-green transition-transform duration-200 group-hover:translate-x-0.5 group-hover:scale-110"
+          >❯</span
+        >
+        <ScrambleText text="neomouse" />
+        <span
+          class="h-4 w-2 animate-pulse bg-term-green transition-colors group-hover:bg-primary"
           aria-hidden="true"
         />
       </RouterLink>

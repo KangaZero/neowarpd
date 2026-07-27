@@ -3,6 +3,7 @@ import { ArrowRight } from "@lucide/vue"
 import { Motion } from "motion-v"
 import GitHubIcon from "@/components/icons/GitHubIcon.vue"
 import KeyCap from "@/components/KeyCap.vue"
+import SpecularButton from "@/components/SpecularButton.vue"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { HERO, SITE } from "@/data/site"
@@ -59,11 +60,9 @@ const cursorY = [0, 0, 0, 44, 88, 88, 44]
           :animate="{ opacity: 1, y: 0 }"
           :transition="{ duration: 0.5, delay: 0.2 }"
         >
-          <Button as-child size="lg">
-            <RouterLink :to="{ path: '/', hash: '#install' }">
-              Install <ArrowRight />
-            </RouterLink>
-          </Button>
+          <SpecularButton href="#install">
+            Install <ArrowRight class="size-4" />
+          </SpecularButton>
           <Button as-child size="lg" variant="outline">
             <a :href="SITE.repoUrl" target="_blank" rel="noopener noreferrer">
               <GitHubIcon /> Star on GitHub

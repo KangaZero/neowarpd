@@ -17,9 +17,22 @@ interface DocModule {
 // Compile every Markdown file in src/docs into a Vue component at build time.
 // The .md files are the single source of truth (also consumed by `just gen-man`).
 const modules = import.meta.glob<DocModule>("../docs/*.md", { eager: true })
+// Same files as raw strings, so search can match the full prose, not just titles.
+const sources = import.meta.glob("../docs/*.md", {
+  eager: true,
+  import: "default",
+  query: "?raw",
+}) as Record<string, string>
 
-const docs = Object.values(modules)
-  .map((m) => ({ ...m.frontmatter, component: m.default }))
+const docs = Object.entries(modules)
+  .map(([path, m]) => ({
+    ...m.frontmatter,
+    component: m.default,
+    // Lowercased full text (frontmatter stripped) for cheap substring search.
+    haystack: (sources[path] ?? "")
+      .toLowerCase()
+      .replace(/^---[\s\S]*?---/, ""),
+  }))
   .sort((a, b) => a.order - b.order)
 
 const route = useRoute()
@@ -36,7 +49,9 @@ const activeDoc = computed(
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return docs
-  return docs.filter((d) => d.title.toLowerCase().includes(q))
+  return docs.filter(
+    (d) => d.title.toLowerCase().includes(q) || d.haystack.includes(q)
+  )
 })
 
 function select(slug: string) {

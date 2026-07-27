@@ -19,7 +19,8 @@ const groups = [
   },
   {
     binds: [
-      { desc: "search the page", keys: ["/"] },
+      { desc: "hint clickable elements", keys: ["f"] },
+      { desc: "search the docs", keys: ["/"] },
       { desc: "toggle this help", keys: ["?"] },
       { desc: "close overlays", keys: ["Esc"] },
     ],

@@ -1,4 +1,13 @@
 import { useEventListener } from "@vueuse/core"
+import { nextTick } from "vue"
+import {
+  enterHints,
+  exitHints,
+  hintBackspace,
+  isHintMode,
+  typeHintChar,
+} from "@/composables/useHints"
+import { router } from "@/router"
 import { ui } from "@/store"
 
 /**
@@ -11,10 +20,8 @@ import { ui } from "@/store"
  *  - guards so keystrokes in inputs / with modifiers pass through untouched,
  *  - a Vim-style numeric count accumulator (type `10` then `j` -> 10 * step),
  *  - `lastKey` tracking so two-key motions like `gg` can be detected,
+ *  - `f` hint mode (delegated to useHints),
  *  - the action helpers themselves (scroll, jump, search, help).
- *
- * The one thing left to wire is the *keymap* — which key runs which action.
- * That mapping is the interesting design decision, so it's a TODO(human) below.
  */
 export function useVimNav(): void {
   // The previous non-digit key, for two-key motions (gg).
@@ -31,7 +38,17 @@ export function useVimNav(): void {
   // (defaults to 1 when no prefix was typed).
   const actions = {
     focusSearch() {
-      document.querySelector<HTMLInputElement>("[data-vim-search]")?.focus()
+      const local =
+        document.querySelector<HTMLInputElement>("[data-vim-search]")
+      if (local) {
+        local.focus()
+        return
+      }
+      // No search box on this page — go to the docs and focus it once mounted.
+      router.push({ path: "/docs" }).then(async () => {
+        await nextTick()
+        document.querySelector<HTMLInputElement>("[data-vim-search]")?.focus()
+      })
     },
     halfPageDown() {
       window.scrollBy({ behavior: "smooth", top: window.innerHeight / 2 })
@@ -69,6 +86,17 @@ export function useVimNav(): void {
   }
 
   function onKey(event: KeyboardEvent) {
+    // Hint mode owns the keyboard while active: letters type a label,
+    // Backspace edits, Escape cancels. Runs before every other guard.
+    if (isHintMode() && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key === "Escape") exitHints()
+      else if (event.key === "Backspace") hintBackspace()
+      else if (/^[a-z]$/.test(event.key)) typeHintChar(event.key)
+      else return
+      event.preventDefault()
+      return
+    }
+
     // Never hijack typing or OS/browser shortcuts.
     if (isTyping(event.target)) return
     if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -121,6 +149,10 @@ export function useVimNav(): void {
     } else if (key === "/") {
       // preventDefault stops the browser's own quick-find from opening.
       actions.focusSearch()
+      event.preventDefault()
+    } else if (key === "f") {
+      // Vimium-style hint mode: label every clickable element.
+      enterHints()
       event.preventDefault()
     } else if (key === "?") {
       actions.toggleHelp()

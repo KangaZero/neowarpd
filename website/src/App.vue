@@ -2,6 +2,7 @@
 import { AnimatePresence, Motion } from "motion-v"
 import AppFooter from "@/components/AppFooter.vue"
 import AppNav from "@/components/AppNav.vue"
+import HintOverlay from "@/components/HintOverlay.vue"
 import VimHelpOverlay from "@/components/VimHelpOverlay.vue"
 import { useVimNav } from "@/composables/useVimNav"
 import { ui } from "@/store"
@@ -23,6 +24,7 @@ useVimNav()
   <AppFooter />
 
   <VimHelpOverlay :open="ui.helpOpen" @close="ui.helpOpen = false" />
+  <HintOverlay />
 
   <!-- Pending-count HUD, echoing Vim's bottom-right count display. -->
   <AnimatePresence>
