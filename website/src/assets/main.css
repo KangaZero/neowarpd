@@ -252,6 +252,24 @@
   background-color: var(--shiki-dark-bg);
 }
 
+/*
+  Theme-toggle "ink reveal". The circular clip-path is animated from JS
+  (store.ts → toggleTheme); here we just disable the browser's default
+  cross-fade so only our expanding circle shows, and stack the new snapshot on
+  top. These pseudo-elements have no Tailwind-utility equivalent.
+*/
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 0;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}
+
 /* Subtle terminal grid backdrop used behind the hero. */
 .bg-grid {
   background-image:
