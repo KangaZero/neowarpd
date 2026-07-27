@@ -3,9 +3,9 @@ import { ArrowRight } from "@lucide/vue"
 import { Motion } from "motion-v"
 import GitHubIcon from "@/components/icons/GitHubIcon.vue"
 import KeyCap from "@/components/KeyCap.vue"
+import LiquidButton from "@/components/LiquidButton.vue"
 import SpecularButton from "@/components/SpecularButton.vue"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { HERO, SITE } from "@/data/site"
 
 // Cursor path through the demo grid (in px, relative to the terminal body).
@@ -63,11 +63,14 @@ const cursorY = [0, 0, 0, 44, 88, 88, 44]
           <SpecularButton href="#install">
             Install <ArrowRight class="size-4" />
           </SpecularButton>
-          <Button as-child size="lg" variant="outline">
-            <a :href="SITE.repoUrl" target="_blank" rel="noopener noreferrer">
-              <GitHubIcon /> Star on GitHub
-            </a>
-          </Button>
+          <LiquidButton
+            :href="SITE.repoUrl"
+            variant="term"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <GitHubIcon class="size-4" /> Star on GitHub
+          </LiquidButton>
         </Motion>
 
         <p class="mt-6 font-mono text-muted-foreground text-xs">
