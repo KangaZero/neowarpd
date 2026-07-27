@@ -4,35 +4,45 @@ import { type Component, computed, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { cn } from "@/lib/utils"
 
-interface DocFrontmatter {
-  title: string
-  slug: string
-  order: number
-}
 interface DocModule {
   default: Component
-  frontmatter: DocFrontmatter
 }
 
 // Compile every Markdown file in src/docs into a Vue component at build time.
 // The .md files are the single source of truth (also consumed by `just gen-man`).
 const modules = import.meta.glob<DocModule>("../docs/*.md", { eager: true })
-// Same files as raw strings, so search can match the full prose, not just titles.
+// Same files as raw strings — for full-text search AND to read frontmatter
+// ourselves (unplugin-vue-markdown doesn't expose a `frontmatter` export here).
 const sources = import.meta.glob("../docs/*.md", {
   eager: true,
   import: "default",
   query: "?raw",
 }) as Record<string, string>
 
+/** Minimal YAML frontmatter reader: flat `key: value` pairs only. */
+function frontmatter(raw: string): Record<string, string> {
+  const block = raw.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? ""
+  const out: Record<string, string> = {}
+  for (const line of block.split("\n")) {
+    const idx = line.indexOf(":")
+    if (idx > 0) out[line.slice(0, idx).trim()] = line.slice(idx + 1).trim()
+  }
+  return out
+}
+
 const docs = Object.entries(modules)
-  .map(([path, m]) => ({
-    ...m.frontmatter,
-    component: m.default,
-    // Lowercased full text (frontmatter stripped) for cheap substring search.
-    haystack: (sources[path] ?? "")
-      .toLowerCase()
-      .replace(/^---[\s\S]*?---/, ""),
-  }))
+  .map(([path, m]) => {
+    const raw = sources[path] ?? ""
+    const fm = frontmatter(raw)
+    return {
+      component: m.default,
+      // Lowercased body (frontmatter stripped) for cheap substring search.
+      haystack: raw.toLowerCase().replace(/^---[\s\S]*?---/, ""),
+      order: Number(fm.order) || 999,
+      slug: fm.slug || path,
+      title: fm.title || "Untitled",
+    }
+  })
   .sort((a, b) => a.order - b.order)
 
 const route = useRoute()
