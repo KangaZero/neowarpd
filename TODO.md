@@ -126,19 +126,34 @@ The categorization layer and the recording post-hook are done. What's left:
 - [ ] Config-driven keybindings (remap motions/actions via `settings.toml`) —
       `neomouseConfig/keymap.swift` is still fully commented-out scaffolding.
 
-## Platform & distribution (#1)
+## Ship v0.0.1 — run on a Mac (cannot be done on Linux/WSL)
 
-- [ ] **Cut the `v0.0.1` release** so the Nix flake resolves (`nix build`
-      currently uses a placeholder hash; pushing the tag runs `release.yml`,
-      which builds the universal binary and rewrites `flake.nix`'s `version` +
-      `hash`).
-- [ ] Add the `HOMEBREW_TAP_TOKEN` repo secret (else the tap bump is skipped).
-- [ ] On the first universal release, remove `depends_on arch: :arm64` from the
-      live Homebrew tap formula.
+Ordered. The repo-hardening work bumped deps + the flake to `0.0.1`, but the
+release isn't cut yet, so `nix build` / `brew install` don't resolve.
+
+- [ ] **Regenerate `Package.resolved`** for the dep bumps (GRDB 7.11.1,
+      TOMLDecoder 0.4.5): `swift package update GRDB.swift TOMLDecoder`, then
+      commit it. **`swift build` fails until this is done.**
+- [ ] **Verify green**: `just all` (lint + test + universal release build);
+      optionally `nix flake check`.
+- [ ] Confirm the **`HOMEBREW_TAP_TOKEN`** repo secret exists (else `release.sh`
+      skips the tap bump and you'd bump the tap by hand).
+- [ ] **Apply the staged tap formula** to `KangaZero/homebrew-neomouse`
+      (`Formula/neomouse.rb`) from `scripts/release-v0.0.1-prep/neomouse.rb`
+      per that directory's README — it carries the universal `.app`-bundle
+      install block and drops the old `depends_on arch: :arm64`.
+- [ ] **Cut the release**: `git tag v0.0.1 && git push origin v0.0.1`.
+      `release.yml` builds the universal binary, publishes the GitHub Release,
+      and rewrites `flake.nix`'s `version` + `hash`. After this, `nix build`
+      and `brew install neomouse` both resolve v0.0.1.
+- [ ] **Verify the install paths**: `nix run github:KangaZero/neomouse`, and
+      `brew untap/tap/install/test neomouse` (steps in
+      `scripts/release-v0.0.1-prep/README.md`).
+
+## Platform — longer horizon
+
 - [ ] Track the `macos-13` Intel-runner deprecation and that nixpkgs 26.05 is
       the last `x86_64-darwin` channel.
-- [ ] Regenerate `Package.resolved` after the GRDB/TOMLDecoder bumps
-      (`swift package update GRDB.swift TOMLDecoder`) and commit it.
 
 ---
 
