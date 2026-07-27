@@ -62,9 +62,17 @@ fmt:
     swift format -i --recursive Sources Tests
 
 # Validate settings.toml against schema/settings.schema.json via Taplo.
-# Install Taplo with `mise install` (pinned in mise.toml) or `brew install taplo`.
+# Taplo comes from the dev shell (`nix develop` / direnv) or `brew install taplo`.
 check-config:
     taplo check settings.toml
+
+# List files still carrying a "Human review needed" marker (see AI_POLICY.md).
+review:
+    bash scripts/review-markers.sh
+
+# Print just the count of files still pending human review.
+review-count:
+    @bash scripts/review-markers.sh --count
 
 # Install the repo-root settings.toml as the user's default config at
 # ~/.config/neomouse/settings.toml. OVERWRITES any existing file there —

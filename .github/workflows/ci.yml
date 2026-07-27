@@ -17,7 +17,7 @@ jobs:
     name: Lint & config schema
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # macos runners' preinstalled Xcode ships Swift 6.2.x. Package.swift
       # declares swift-tools-version 6.3, so install Swift 6.3 via swiftly
@@ -64,7 +64,7 @@ jobs:
           - os: macos-15
             arch: x86_64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Swift 6.3 via swiftly
         run: |
@@ -122,10 +122,10 @@ jobs:
           - os: macos-14
             arch: x86_64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@v22
 
       - name: flake show
         run: nix flake show

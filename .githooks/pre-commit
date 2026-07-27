@@ -27,8 +27,8 @@ fi
 #
 # Cheap (sub-second) and only runs when the config or its schema is actually
 # part of this commit, so most commits skip it. taplo is optional tooling
-# (install via `mise install` or `brew install taplo`) — skip gracefully when
-# it's absent rather than blocking a commit on a missing dev dependency.
+# (from the dev shell / `nix develop`, or `brew install taplo`) — skip
+# gracefully when it's absent rather than blocking a commit on a missing dep.
 
 staged_cfg=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(settings\.toml|schema/)' || true)
 

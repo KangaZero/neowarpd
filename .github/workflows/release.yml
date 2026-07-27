@@ -34,7 +34,7 @@ jobs:
       # committed + pushed to main. The tag points at main's tip, so the build
       # content is identical. fetch-depth 0 brings tags so SKIP_TAG's existence
       # check (`git rev-parse $VERSION`) and the release-notes range resolve.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
           ~/.swiftly/bin/swiftly install --use 6.3
 
       - name: Install Nix (for the flake.nix SRI-hash bump)
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@v22
 
       - name: Configure git identity (for flake + tap commits)
         run: |
