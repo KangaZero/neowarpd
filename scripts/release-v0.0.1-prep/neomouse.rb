@@ -4,7 +4,7 @@ class Neomouse < Formula
   url "https://github.com/KangaZero/neomouse/releases/download/v0.0.0/neomouse-v0.0.0-macos-universal.tar.gz"
   sha256 "c2c5e16b38a6130baff74fb7dc87401d4f81c17222cca2ab3116b3c0ba8779f1"
   version "0.0.0"
-  license "MIT"
+  license "GPL-3.0-only"
 
   # Universal binary (arm64 + x86_64) — no `depends_on arch:` constraint, runs
   # natively on both Apple Silicon and Intel Macs.
