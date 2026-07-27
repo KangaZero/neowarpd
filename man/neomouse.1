@@ -1,0 +1,260 @@
+.\" [!IMPORTANT] Human review needed — AI-generated, unreviewed. See AI_POLICY.md.
+.TH NEOMOUSE 1 "2026-07-27" "neomouse 0.0.1" "User Commands"
+.SH NAME
+neomouse \- Vim\-motion keyboard\-driven mouse control daemon for macOS
+.SH SYNOPSIS
+.B neomouse
+.SH DESCRIPTION
+.PP
+.B neomouse
+is a macOS menu\-bar daemon that intercepts keyboard events via a global
+.B CGEventTap
+and translates Vim motions into mouse movements, clicks, scrolls, and
+gestures.
+It runs in the background with no Dock icon; a mode\-colored status icon
+appears in the menu bar.
+.PP
+The interaction model is mode\-based, mirroring Vim.
+On launch the daemon enters the mode specified by
+.I mode_on_start
+in
+.I settings.toml
+(default:
+.BR normal ).
+.TP
+.B normal
+.B hjkl
+moves the cursor.
+Numeric counts (e.g.\&
+.BR 5j )
+and motions
+.RB ( gg ,
+.BR G ,
+.BR 0 ,
+.BR $ )
+are supported.
+.B s
+snaps to the nearest ruler cell.
+Capital
+.B H\|J\|K\|L
+scrolls.
+.B Ctrl\-w
+followed by
+.B hjkl
+jumps between displays.
+.B m{a\-z}
+sets a mark;
+.BI ' {a\-z}
+and
+.BI ` {a\-z}
+jump back to it.
+.BI \" {reg}
+selects a register.
+.B ?
+opens the help dialog.
+.TP
+.B find
+A labelled grid overlay covers the screen.
+One or two keypresses warps the cursor to the chosen cell.
+.TP
+.B specialFind
+A small grid appears around the current cursor position.
+A single keypress lands on the picked cell.
+.BR q / w / e / r
+nudge the cursor ±10 pts.
+.TP
+.B visual
+Entered with
+.BR v .
+Movement extends a highlighted selection rectangle.
+.B y
+yanks (screenshot via
+.BR ScreenCaptureKit ).
+Register round\-trips
+.RB ( """ay ,
+.BR """ap ,
+\&...)
+work with real
+.B NSPasteboardItem
+values.
+.TP
+.B command
+.B :
+opens a command\-line overlay with fuzzy\-filtered suggestions
+.RB ( numbers ,
+.BR relativenumbers ,
+.BR delmarks ,
+.BR restart ,
+\&...).
+.B Tab
+/
+.B Shift\-Tab
+and
+.B Ctrl\-n
+/
+.B Ctrl\-p
+cycle through matches.
+.TP
+.B menu
+A keyboard\-navigable marks browser and a Pasty\-style register browser.
+.TP
+.B disabled
+The event tap is in listen\-only mode.
+Every keypress passes straight through to the focused application.
+.SH CONFIGURATION
+.PP
+Runtime tuning is stored in
+.BR settings.toml ,
+a TOML file validated against
+.B schema/settings.schema.json
+at load time.
+.PP
+Configuration is resolved once at startup.
+The first path that exists wins:
+.TP
+1.
+.B $NEOMOUSE_CONFIG
+\(em full path to an alternate
+.I settings.toml
+(overrides everything when set).
+.TP
+2.
+.B ~/.config/neomouse/settings.toml
+\(em the standard per\-user location.
+On first launch,
+.B neomouse
+copies its bundled default
+.I settings.toml
+here if no file is already present.
+.TP
+3.
+.B ~/Library/Application\ Support/neomouse/settings.toml
+\(em macOS\-native fallback.
+.PP
+Properties in
+.B NeoMouseState
+fall back to compiled\-in defaults when no settings file is resolved.
+.PP
+The schema enforces strict key validation: unknown TOML keys and unknown
+enum values are rejected at decode time and surfaced as a toast notification.
+.PP
+Notable configuration sections:
+.TP
+.B [grid]
+Find\-mode overlay divisions, label alphabets, and inner\-character display.
+.TP
+.B [motion]
+.I rows_on_screen
+/
+.I columns_on_screen
+(integer or
+.BR \(dqautomatic\(dq )
+and cursor\-clamping behaviour.
+.TP
+.B [visual]
+.I minimum_highlight_width
+for the selection rectangle.
+.TP
+.B [gesture]
+Pinch/zoom step value, scroll increments, and rotation degrees.
+.TP
+.B [commands]
+Whitelist of commands available in the
+.B command
+mode overlay.
+.TP
+.B [configuration]
+.I mode_on_start ,
+.I is_disable_key_input ,
+.I is_show_key_cast ,
+.I is_auto_snap ,
+.I max_session_count ,
+and related behavioural knobs.
+.TP
+.B [theme.*]
+Per\-element visual overrides for every overlay.
+Nine sub\-sections:
+.BR theme.grid ,
+.BR theme.numbers_overlay ,
+.BR theme.command_line ,
+.BR theme.marks_menu ,
+.BR theme.register_menu ,
+.BR theme.help_dialog ,
+.BR theme.visual_highlight ,
+.BR theme.toast ,
+and
+.BR theme.key_cast .
+Colors are hex strings
+.RB ( #rrggbb
+or
+.BR #rrggbbaa );
+fonts are inline tables with
+.IR family ,
+.IR size ,
+.IR weight ,
+and
+.I design
+fields.
+.PP
+Theme and behaviour changes can also be applied without restarting:
+.B neomouse
+watches the resolved
+.I settings.toml
+for writes (debounced 250\ ms, atomic\-save aware) and reloads automatically.
+The
+.B Settings\&...
+item in the menu\-bar dropdown (or
+.B \(aqCommand+,\(aq
+when neomouse is focused) opens a native preferences window where controls
+apply live and
+.B \(aqCommand+S\(aq
+persists changes to disk.
+.SH FILES
+.TP
+.B $NEOMOUSE_CONFIG
+User\-defined override path (environment variable).
+.TP
+.B ~/.config/neomouse/settings.toml
+Primary per\-user configuration file.
+Auto\-populated from the bundled defaults on first launch.
+.TP
+.B ~/Library/Application\ Support/neomouse/settings.toml
+macOS\-native fallback configuration path.
+.TP
+.B ~/Library/Logs/neomouse/neomouse.log
+Runtime log file (written automatically when running from a bundled
+.IR .app ).
+Accessible via
+.B Diagnostics\ \(->\ Show\ Debug\ Log
+in the menu\-bar dropdown, or directly in
+.BR Console.app .
+.SH PERMISSIONS
+.PP
+.B neomouse
+requires two macOS privacy permissions, both granted in
+.BR "System Settings \(-> Privacy & Security" :
+.TP
+.B Accessibility
+Required for the global
+.B CGEventTap
+to intercept and synthesize keyboard and mouse events.
+macOS prompts on first launch; click
+.I Allow
+and relaunch
+.BR neomouse .
+.TP
+.B Input Monitoring
+Required to read raw key events from physical input devices while other
+applications are focused.
+Grant the same way as Accessibility, then relaunch.
+.PP
+Until both permissions are granted the event tap cannot install and
+.B neomouse
+will not be able to intercept keyboard input.
+.SH SEE ALSO
+.BR warpd (1)
+\(em the keyboard\-driven cursor warping tool that inspired
+.BR neomouse .
+.PP
+Project homepage and source:
+.I https://github.com/KangaZero/neomouse

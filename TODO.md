@@ -1,143 +1,177 @@
+> [!IMPORTANT]
+> **Human review needed.** AI-generated; not yet confirmed by a human. See AI_POLICY.md.
+
 # TODO
 
-## MVP — Basic Vim motions
+Working backlog for **neomouse** (the SwiftUI menu-bar app — not the old C
+prototype). Items are grouped by theme; roughly ordered within each group.
+The pre-Swift MVP list (hjkl in `main.h`, a `Makefile`, an install script, a
+mode-activation key) is **done or obsolete** and has been removed — those
+motions, modes, marks, jumps, visual mode, the command palette, and the
+`just`/SwiftPM build all exist today.
 
-- [x] `j` moves mouse down
-- [ ] `h` moves mouse left
-- [ ] `k` moves mouse up
-- [ ] `l` moves mouse right
-- [ ] Define all hjkl keycodes in `main.h`
-- [ ] Move keycodes to a dedicated header (noted in `main.h`)
+Issues **#3** (command categorization + pre/after-hook pipeline), **#4**
+(source-tree reorg), and **#5** (code-health audit) have **landed on `main`**,
+so their work is gone from this list. What survives: the still-open slices of
+the sessions & command-history feature, the code-health items #5 flagged that
+are *not yet fixed* (re-verified against the current tree), and the platform /
+distribution follow-ups from #1. See `CLAUDE.md` for architecture.
 
-## Motion feel
+## What landed (context — not a checklist)
 
-- [ ] Configurable movement speed (step size, currently hardcoded to 10)
-- [ ] Acceleration — hold key to move faster over time
-- [ ] Count prefix support (e.g. `5j` moves down 5x the step size)
+- **#4 reorg.** `KeyHandlers.swift` split into `Input/KeyDispatch.swift` +
+  per-mode `Input/Handlers/*.swift`; `NeoMouseApp.swift` decomposed; flat `ui/`
+  regrouped into `UI/<category>/`; `theme.swift` split into `Theme/`; tests
+  regrouped per module; dead `old/` code deleted; stray free funcs made static.
+- **#3 pipeline.** `CommandCategory` (in `neomouseTypes`) + `OperationName`
+  categorization (`OperationName+Category.swift`) + the `ExecutionPipeline`
+  pre/post-hook chokepoint + a serial `OperationRecorder` actor. **Recording is
+  now wired**: the `recordOperation` post-hook enqueues a `RecordedOperation`
+  that drains into `ExecutedOperation.set` in FIFO keystroke order.
+- **#5 fixes.** `ExecutedOperation.databaseTableName` typo → `"executed_operation"`;
+  `Session.update` now matches on `id` and actually calls `update(db)`; DB /
+  Config / Screenshot unit suites added. `front_app_follows_mouse` is wired
+  (`CoreOperations.setFrontMostAppOnCursorAsActiveIfNeeded` fires from the
+  dispatch).
 
-## Mouse actions
+## Sessions & command history
 
-- [ ] Left click
-- [ ] Right click
-- [ ] Middle click
-- [ ] Scroll up/down (`Ctrl-u` / `Ctrl-d` style)
+Goal: record every executed operation, tie it to a session, and surface it in a
+browsable **history panel** you can re-run from — reusing the existing
+`neomouseDB` models (`ExecutedOperation`, `Session`, `Macro`) and the menu-mode
+browser pattern (`MarksMenu`, `RegisterMenu`).
 
-## Mode system (Vim-inspired)
+Recording itself is **done** (see above) — each op is persisted with its
+`OperationName`, category, `keysUsed`, mode, start/end points, and `sessionId`.
+The DB read helpers also already exist: `ExecutedOperation.getAll(sessionId:)`,
+`get(id:sessionId:)`, `getAll(name:sessionId:)`, and `delete(id:sessionId:)`.
+The remaining work is the UI, re-execution, session lifecycle, and retention:
 
-- [ ] Activation key to enter mouse mode (to avoid intercepting all keypresses globally)
-- [ ] ESC / deactivation to exit mouse mode and restore normal input
-- [ ] Visual indicator (e.g. cursor change or overlay) when in mouse mode
+- [ ] **History panel (new menu-mode browser).** Add a keyboard-navigable panel
+      (sibling of `UI/Menus/MarksMenu.swift` / `UI/Menus/RegisterMenu.swift`,
+      e.g. `UI/Menus/HistoryMenu.swift`) listing recent operations with mode, op
+      name, `keysUsed`, and timestamp; scrollable, newest-first. Needs a new
+      `MenuWindow.history` case in `neomouseTypes` (`modes.swift` currently has
+      only `.marks` / `.register`) plus a `MenuModeHandler` branch. No panel
+      exists yet.
+- [ ] **Re-execute from history.** Select an entry and replay it by feeding it
+      back through `ExecutionPipeline.execute`. The pipeline + `Command` value
+      exist, but only `NeoMouse.executeMotion` builds one today; add a generic
+      `execute(OperationName)` re-dispatch (map a stored op → a `Command` +
+      `action`) so history entries — not just live keypresses — can drive it.
+- [ ] **Session lifecycle / boundaries.** Row-level association is already done
+      (`sessionId` threads through `KeyEventContext` → `Command` →
+      `RecordedOperation`). Still open: decide + wire when a `Session` starts and
+      closes (per launch? per active period? honor `new_session_on_open` /
+      `max_session_count` from `[configuration]`) and bump `updatedAt` as ops
+      accrue.
+- [ ] **Search / filter** the history panel (by mode, category, op name, or
+      fuzzy text — mirror the `:` command overlay's suggestion filtering).
+      `getAll(name:sessionId:)` covers the exact-name case; fuzzy/category
+      filtering is new.
+- [ ] **Promote history → macro.** Select a contiguous range and save it as a
+      `Macro` for one-key replay. **Blocked**: the `macro` table is still
+      commented out in `initializeDB` — create it first (see code-health below).
+- [ ] **Retention policy / cap** on stored operations (avoid unbounded DB
+      growth); a `:clearhistory` command (add to `[commands]` + schema + the `:`
+      handler) and a settings toggle to disable recording (a pre-hook guard on
+      `recordOperation`). None of these exist yet.
 
-## Advanced motions
+## Known bugs / code-health (still open after #5)
 
-- [ ] `gg` / `G` — jump to top/bottom of screen
-- [ ] `0` / `$` — jump to left/right edge of screen
-- [ ] `H` / `M` / `L` — jump to top/middle/bottom of screen (like Vim screen lines)
-- [ ] `/` search — warp to a labeled target on screen (warpd-style)
+Re-verified against the current tree — the typo, `Session.update`, and thin
+tests from the old list are **fixed** and removed. These remain:
 
-## Infrastructure
+- [ ] **`initializeDB` still re-initializes every launch.** The tables-exist
+      guard now exists, *but* it checks `db.tableExists("macro")` while the
+      `macro` table's `create` block is commented out — so the guard is
+      permanently false and every launch drops + recreates all tables, wiping
+      persistent history/marks. Create the `macro` table (unblocks the
+      history→macro promotion above) so the guard can pass.
+- [ ] **DB lives in a temp dir** — `dbPath` is under
+      `FileManager.default.temporaryDirectory` in `AppDatabase.swift`, so it
+      doesn't survive reliably. Move to a stable Application Support path.
+- [ ] **No DB migration path** — schema is built with `db.create(table:)` and a
+      destructive drop-all re-init; there is no `DatabaseMigrator`. Add one
+      before history data becomes worth keeping.
+- [ ] **Clipboard/register storage is unencrypted** and does not filter
+      concealed pasteboard types (passwords, `org.nspasteboard.ConcealedType`).
+      `Register` archives the raw `NSPasteboardItem` blob with no redaction —
+      filter/redact concealed + transient types before persisting.
+- [ ] **`$` motion missing its modifier guard.** The `"$"` case in
+      `NormalModeHandler.swift` fires with no `event.modifierFlags` check,
+      unlike the guarded `m` / `r` / `R` cases beside it — so it triggers when
+      it shouldn't (extra modifiers held).
+- [ ] Audit **force-unwrap crash risks** and **silently-swallowed errors** — the
+      DB layer still `debug(...)`-and-continues on every `catch` (`getAll`,
+      `set`, `delete`, `update`), which hides real failures.
+- [ ] **License mismatch**: `Info.plist` copyright string still says *"MIT
+      licensed"*, but the project switched to GPL-3.0 (the `LICENSE` file and
+      README are already GPL-3.0). Reconcile `Info.plist` to GPL-3.0.
 
-- [ ] Proper `Makefile` / build system
-- [ ] Install script
-- [ ] Run as a background LaunchAgent (launchd plist)
-- [ ] Config file support (speed, keybindings)
+## Command pipeline & config (remaining slices of #3)
 
-Motions That Add to Jump List
-Line-based large motions
+The categorization layer and the recording post-hook are done. What's left:
 
-gg — go to first line
-G — go to last line
-{number}G — go to specific line
-{number}gg — go to specific line
-H — go to top of screen
-M — go to middle of screen
-L — go to bottom of screen
-{ — jump to previous empty line (paragraph back)
-} — jump to next empty line (paragraph forward)
-( — jump to previous sentence
-) — jump to next sentence
-[[ — jump to previous { in column 0
-]] — jump to next { in column 0
-[] — jump to previous } in column 0
-][ — jump to next } in column 0
+- [ ] **Move `auto-snap` + `front_app_follows_mouse` into `ExecutionPipeline`
+      after-hooks** (category-filtered to `.motion`). They currently fire
+      coarsely at the dispatch site in `KeyDispatch.swift`; the post-hook array
+      only holds `recordOperation`. Convert every relevant call site to
+      `execute(_:context:)` first, then relocate them so the coarse calls can be
+      removed without a double-fire window (see the note in
+      `ExecutionPipeline.swift`).
+- [ ] **Kill the repeated `appState.mode = .normal(...)` reset boilerplate** by
+      folding the reset into the pipeline / dispatch, per motion's differing
+      pending-state needs.
+- [ ] Config-driven keybindings (remap motions/actions via `settings.toml`) —
+      `neomouseConfig/keymap.swift` is still fully commented-out scaffolding.
 
-Search
+## Platform & distribution (#1)
 
-/pattern — search forward
-?pattern — search backward
-n — repeat last search forward
-N — repeat last search backward
-* — search word under cursor forward
-# — search word under cursor backward
-g* — like * but partial match
-g# — like # but partial match
+- [ ] **Cut the `v0.0.1` release** so the Nix flake resolves (`nix build`
+      currently uses a placeholder hash; pushing the tag runs `release.yml`,
+      which builds the universal binary and rewrites `flake.nix`'s `version` +
+      `hash`).
+- [ ] Add the `HOMEBREW_TAP_TOKEN` repo secret (else the tap bump is skipped).
+- [ ] On the first universal release, remove `depends_on arch: :arm64` from the
+      live Homebrew tap formula.
+- [ ] Track the `macos-13` Intel-runner deprecation and that nixpkgs 26.05 is
+      the last `x86_64-darwin` channel.
+- [ ] Regenerate `Package.resolved` after the GRDB/TOMLDecoder bumps
+      (`swift package update GRDB.swift TOMLDecoder`) and commit it.
 
-Marks
+---
 
-`a — jump to exact position of mark a (any letter)
-'a — jump to line of mark a (any letter)
-`. — jump to position of last change
-'. — jump to line of last change
-`^ — jump to last insert position
-`[ — jump to start of last yanked/changed text
-`] — jump to end of last yanked/changed text
-`< — jump to start of last visual selection
-`> — jump to end of last visual selection
-    — jump to position before last jump (itself a jump)
-'' — jump to line before last jump
+## Reference — Vim jump-list semantics
 
-Bracket/tag matching
+Design reference (not a checklist) for the marks/jumps feature: which Vim
+motions push onto the jump list. Kept because neomouse mirrors these semantics.
 
-% — jump to matching bracket, paren, brace, or #if/#endif
-[{ — jump to unclosed { above
-]} — jump to unclosed } below
-[( — jump to unclosed ( above
-]) — jump to unclosed ) below
+**Adds to jump list — large/line motions:** `gg`, `G`, `{n}G`, `{n}gg`, `H`,
+`M`, `L`, `{`, `}`, `(`, `)`, `[[`, `]]`, `[]`, `][`.
 
-Tag navigation
+**Adds to jump list — search:** `/pattern`, `?pattern`, `n`, `N`, `*`, `#`,
+`g*`, `g#`.
 
-Ctrl-] — jump to tag under cursor
-Ctrl-T — jump back from tag (also pops tag stack)
-:tag {name} — jump to tag by name
-:tags — not a jump, just lists the tag stack
+**Adds to jump list — marks:** `` `a `` (exact), `'a` (line), `` `. `` / `'.`
+(last change), `` `^ `` (last insert), `` `[ `` / `` `] `` (last yank/change
+bounds), `` `< `` / `` `> `` (last visual bounds), `` `` `` / `''` (position
+before last jump).
 
+**Adds to jump list — bracket/tag/ex/window:** `%`, `[{`, `]}`, `[(`, `])`;
+`Ctrl-]`, `Ctrl-T`, `:tag {name}`; `:{line}`, `:/{pattern}`, `:?{pattern}`;
+`gf`, `gF`, `Ctrl-^`.
 
-Ex Commands That Add to Jump List
+**Does NOT add to jump list:** `h`/`j`/`k`/`l` (too granular); `w`/`b`/`e`/`ge`
+and `W`/`B`/`E` (word motions); `0`/`^`/`$` (line-internal); `f`/`F`/`t`/`T` and
+`;`/`,` (in-line char search); `+`/`-`/`_` (line motions, not jumps); `zz`/`zt`/
+`zb` (scroll, no line change); `Ctrl-D`/`Ctrl-U`/`Ctrl-F`/`Ctrl-B` (scroll);
+insert/edit commands (`i`/`a`/`o`, `x`/`d`/`c`, …).
 
-:line — e.g. :42 jumps to line 42
-:/{pattern} — search via ex
-:?{pattern} — search backward via ex
-:edit {file} / :e — opening a file
-:buffer {n} / :b — switching buffers
-:bnext / :bprev / :bfirst / :blast
-:grep / :vimgrep followed by jumping to results
-:cnext / :cprev / :cc — quickfix navigation
-:lnext / :lprev / :ll — location list navigation
-:make result jumps
+**List navigation itself:** `Ctrl-O` (older), `Ctrl-I`/`Tab` (newer) — move the
+pointer without adding entries.
 
-
-Window/File Actions That Add to Jump List
-
-Ctrl-W Ctrl-] — open tag in new split (adds to jump list in new window)
-gf — go to file under cursor
-gF — go to file + line number under cursor
-Ctrl-^ / Ctrl-6 — alternate file (last edited buffer)
-
-
-Jump List Navigation Itself
-
-Ctrl-O — jump to older position (moves cursor back)
-Ctrl-I / Tab — jump to newer position (moves cursor forward)
-These do not add new entries but do move the cursor pointer, which affects where truncation happens if you then make a new jump
-
-
-What Explicitly Does NOT Add to Jump List
-MotionWhy excludedh j k lToo granularw b e ge W B EWord motions, considered small0 ^ $Line-internal onlyf F t TCharacter search, in-line; ,Repeat of f/F/t/T+ - _Line motions but not "jumps"zz zt zbScrolling, no cursor line changeCtrl-D Ctrl-UScroll — no jump entryCtrl-F Ctrl-BPage scroll — no jump entryi a o etcInsert mode entryx X d c etcEdits without separate jump
-
-Notes on Entries That Alter the List
-
-Truncation — any new jump while not at the newest entry discards everything forward
-Deduplication — Vim may merge consecutive entries pointing to the same location
-Per-window — each window (Ctrl-W split) has its own independent jump list
-Size limit — capped at 100 entries by default; oldest entries fall off when full
-:clearjumps — wipes the entire jump list for the current window
+**List semantics:** truncation (a new jump while not at the newest entry
+discards everything forward); dedup of consecutive same-location entries;
+per-window lists; capped at 100 entries (oldest fall off); `:clearjumps` wipes
+it.

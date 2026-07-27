@@ -1,8 +1,32 @@
-# neomouse
+<!-- markdownlint-disable MD033 MD041 -->
 
-A keyboard-driven mouse control daemon for macOS, inspired by [warpd](https://github.com/rvaiya/warpd) but built around true Vim motions.
+<div align="center">
 
-The goal is to feel like you never left Vim — mouse control that maps naturally to muscle memory.
+<h1>neomouse</h1>
+
+### Vim motions for your mouse — on macOS.
+
+[How it works](#how-it-works) &nbsp;•&nbsp;
+[Requirements](#requirements) &nbsp;•&nbsp;
+[Install](#install) &nbsp;•&nbsp;
+[Development](#development) &nbsp;•&nbsp;
+[Contributing](#contributing--ai-usage)
+
+**A menu-bar daemon that drives the cursor, clicks, scrolls, and gestures straight from `hjkl` — modal, count-aware, mark- and register-backed. You never left Vim; now your mouse hasn't either.**
+
+[![CI](https://github.com/KangaZero/neomouse/actions/workflows/ci.yml/badge.svg)](https://github.com/KangaZero/neomouse/actions/workflows/ci.yml)
+[![Release](https://github.com/KangaZero/neomouse/actions/workflows/release.yml/badge.svg)](https://github.com/KangaZero/neomouse/actions/workflows/release.yml)
+[![License GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue?style=social)](./LICENSE)
+![Last commit](https://img.shields.io/github/last-commit/KangaZero/neomouse?style=flat-square&color=58839b)
+![Platform macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple&logoColor=white)
+![Universal arm64 + x86_64](https://img.shields.io/badge/Universal-arm64%20%2B%20x86__64-black?style=flat-square&logo=apple&logoColor=white)
+![Swift 6.3](https://img.shields.io/badge/Swift-6.3-fa7343?style=flat-square&logo=swift&logoColor=white)
+
+> **Inspired by [warpd](https://github.com/rvaiya/warpd), built around true Vim motions** — cursor control that maps to muscle memory you already have.
+
+</div>
+
+---
 
 ## How it works
 
@@ -32,9 +56,11 @@ The release binary is ad-hoc signed (not Apple Developer ID signed). The Homebre
 
 ## Install
 
-Pick one. All three install the same v0.0.0 binary from the [Releases page](https://github.com/KangaZero/neomouse/releases).
+Pick one. All three install the same v0.0.1 binary from the [Releases page](https://github.com/KangaZero/neomouse/releases).
 
 ### 1. Homebrew
+
+*The no-Nix, no-fuss path — `brew` handles the ad-hoc signature and puts `neomouse` on your `PATH`.*
 
 ```sh
 brew tap KangaZero/neomouse
@@ -63,11 +89,13 @@ nix run github:KangaZero/neomouse
 
 This downloads the prebuilt binary into your Nix store, runs it, and leaves no trace on next garbage collection.
 
-**Install into your user profile** (puts `neomouse` on your `PATH` permanently):
+**Install into your user profile** (puts `neomouse` on your `PATH` permanently — the imperative path):
 
 ```sh
 nix profile add github:KangaZero/neomouse
 ```
+
+> If your whole system is already a flake and you're reaching for `nix profile add` anyway — respectfully, you're a bit of a sadist. The declarative **system-flake path below** is the clean way. But this works, and we don't judge (much).
 
 > On Nix older than 2.20, the subcommand is `nix profile install` instead of `add`. Both still work in recent versions, but `install` is now a deprecated alias.
 
@@ -113,7 +141,7 @@ Rebuild your system (`darwin-rebuild switch --flake .#<host>` or `home-manager s
 
 ```sh
 # Pick the latest release URL from https://github.com/KangaZero/neomouse/releases
-VERSION=v0.0.0
+VERSION=v0.0.1
 curl -LO "https://github.com/KangaZero/neomouse/releases/download/${VERSION}/neomouse-${VERSION}-macos-universal.tar.gz"
 curl -LO "https://github.com/KangaZero/neomouse/releases/download/${VERSION}/neomouse-${VERSION}-macos-universal.tar.gz.sha256"
 
@@ -146,18 +174,22 @@ Requires Swift 6.3+ (`swift --version`). No Xcode required for building — Comm
 
 ### Tools
 
-Everything the dev workflow touches. The recommended path is `mise` + `swiftly` (handled automatically by the Setup section below); manual install columns are there if you'd rather wire them up yourself.
+Everything the dev workflow touches. The recommended path is the Nix devShell (via [direnv](https://direnv.net/)) for the tooling, plus `swiftly` for the Swift toolchain — Swift is **not** in the dev shell (it comes from full Xcode or swiftly). See the Setup section below.
 
-| Tool | Why it's needed | Install (manual) |
+| Tool | Why it's needed | How you get it |
 |---|---|---|
-| [Swift](https://www.swift.org/install/) 6.3+ | Compiler / `swift build` / `swift test` / `swift-format` (bundled). | [swiftly](https://www.swift.org/swiftly/documentation/swiftly/) (recommended — respects `.swift-version`), the swift.org installer, or full Xcode. **Not** Command Line Tools alone: its `Testing.framework` is missing `_TestingInterop`, which `swift test` hard-links. |
-| [just](https://github.com/casey/just) | Task runner — every common workflow is a `just <recipe>`. | `brew install just` |
-| [taplo](https://taplo.tamasfe.dev/) | TOML linter for `just check-config` (validates `settings.toml` against the schema). | `brew install taplo` |
-| [mise](https://mise.jdx.dev/) *(recommended)* | Per-repo version pinning for `just` + `taplo` via `mise.toml`; auto-activates on `cd`. | `brew install mise` or `curl https://mise.run \| sh` |
+| [Swift](https://www.swift.org/install/) 6.3+ | Compiler / `swift build` / `swift test` / `swift-format` (bundled). | [swiftly](https://www.swift.org/swiftly/documentation/swiftly/) (recommended — respects `.swift-version`), the swift.org installer, or full Xcode. **Not** Command Line Tools alone: its `Testing.framework` is missing `_TestingInterop`, which `swift test` hard-links. **Not provided by the Nix dev shell.** |
+| [just](https://github.com/casey/just) | Task runner — every common workflow is a `just <recipe>`. | Nix devShell |
+| [taplo](https://taplo.tamasfe.dev/) | TOML linter for `just check-config` (validates `settings.toml` against the schema). | Nix devShell |
+| [shellcheck](https://www.shellcheck.net/) | Lints the shell scripts under `scripts/` and `.githooks/`. | Nix devShell |
+| [actionlint](https://github.com/rhysd/actionlint) | Lints the GitHub Actions workflows under `.github/workflows/`. | Nix devShell |
+| [nixfmt](https://github.com/NixOS/nixfmt) | Formats `flake.nix`. | Nix devShell |
+| [statix](https://github.com/oppiliappan/statix) | Lints `flake.nix` for Nix anti-patterns. | Nix devShell |
+| [deadnix](https://github.com/astro/deadnix) | Finds dead code in `flake.nix`. | Nix devShell |
 | [swiftly](https://www.swift.org/swiftly/documentation/swiftly/) *(recommended)* | Swift toolchain manager; ships the full `xctoolchain` bundle that `sourcekit-lsp` and `swift-testing` need. | `curl -O https://download.swift.org/swiftly/darwin/swiftly.pkg && installer -pkg swiftly.pkg -target CurrentUserHomeDirectory` (see swiftly docs) |
-| git | Repo + pre-commit hook (`scripts/setup-hooks.sh` activates `.githooks/`). | Comes with Command Line Tools (`xcode-select --install`). |
+| git | Repo + pre-commit hook (the dev shell points `core.hooksPath` at `.githooks/`). | Comes with Command Line Tools (`xcode-select --install`). |
 
-`swift-format`, `swift-testing`, and `sourcekit-lsp` all ship inside the Swift toolchain — no separate install.
+`swift-format`, `swift-testing`, and `sourcekit-lsp` all ship inside the Swift toolchain — no separate install. Everything marked "Nix devShell" is provided by `devShells.default` in `flake.nix`; you never install those by hand.
 
 ### Setup
 
@@ -165,24 +197,17 @@ Everything the dev workflow touches. The recommended path is `mise` + `swiftly` 
 git clone https://github.com/KangaZero/neomouse
 cd neomouse
 
-# One-time per clone: enable the repo's git hooks
-scripts/setup-hooks.sh
+# One-time: allow the repo's .envrc (contains `use flake`)
+direnv allow
 ```
 
-The repo pins `just` and `taplo` in `mise.toml`, so they stay out of your global environment. Swift itself is managed separately by [swiftly](https://www.swift.org/swiftly/documentation/swiftly/) (see Tools table above) — `mise` does not pin the Swift toolchain. If you use [mise](https://mise.jdx.dev/):
+The repo ships a `.envrc` containing `use flake`. Once you run `direnv allow`, the Nix dev shell auto-loads every time you `cd` into the repo — putting `just`, `taplo`, `shellcheck`, `actionlint`, `nixfmt`, `statix`, and `deadnix` on your `PATH`, scoped to this directory. Leave the directory and none of them leak into your global environment. If you'd rather not use direnv, run `nix develop` manually to drop into the same shell.
 
-```sh
-mise trust   # one-time, allow this repo's mise.toml to run
-mise install # fetches the pinned versions of just + taplo
-```
+Entering the dev shell also activates the git hooks: the flake's `shellHook` sets `core.hooksPath=.githooks`, so there's no separate hook-setup step. The pre-commit hook runs `swift format lint --strict` on staged Swift files and `swift test` before each commit; the same checks run in CI on every push to `main` and every PR.
 
-mise installs each tool into `~/.local/share/mise/installs/<tool>/<version>/` and only adds them to `PATH` while you're inside this repo (via the shell hook). Outside the repo, neither is available.
+Swift itself is **not** in the dev shell — install it via [swiftly](https://www.swift.org/swiftly/documentation/swiftly/) (see Tools table above) or full Xcode.
 
 > Why swiftly and not Command Line Tools: macOS's CLT toolchain ships `Testing.framework` without the `_TestingInterop` C bridge that `swift-testing` 6.3 hard-links. The swift.org toolchain (what swiftly installs) ships both, so `swift test` works without any rpath gymnastics. Full Xcode also works.
-
-If you don't use mise, install `just` / `taplo` however you prefer (`brew install just taplo`, etc.) and Swift via swiftly or the swift.org installer.
-
-`setup-hooks.sh` sets `core.hooksPath=.githooks`. The pre-commit hook runs `swift format lint --strict` on staged Swift files and `swift test` before each commit. The same checks run in CI on every push to `main` and every PR.
 
 ### `just` — the catch-all
 
@@ -225,7 +250,7 @@ swift test                   # run the test suite
 
 > **Heads up:** `swift run` launches the bare Mach-O at `.build/<config>/neomouse` directly. macOS LaunchServices only reads `CFBundleIdentifier` from a real `.app/Contents/Info.plist` — embedding the same plist in the binary's `__TEXT,__info_plist` section is not enough — so SwiftUI's `MenuBarExtra` silently fails to register a status item. `just run` works around this by assembling `.build/<config>/neomouse.app` from the repo-root `Info.plist` and launching the inner binary from inside that bundle. **If you're working on anything menu-bar-related, use `just run` (or hand-assemble the wrapper yourself), not `swift run`.**
 
-`swift test` uses [swift-testing](https://github.com/swiftlang/swift-testing) (`import Testing`). With the mise-pinned swift.org toolchain (or full Xcode), it Just Works — both `Testing` and `_TestingInterop` ship in the toolchain. If you're stuck on a Command Line Tools-only install, `_TestingInterop` is missing and the link step will fail; install full Xcode or use the mise pin above.
+`swift test` uses [swift-testing](https://github.com/swiftlang/swift-testing) (`import Testing`). With the swiftly-managed swift.org toolchain (or full Xcode), it Just Works — both `Testing` and `_TestingInterop` ship in the toolchain. If you're stuck on a Command Line Tools-only install, `_TestingInterop` is missing and the link step will fail; install full Xcode or the swift.org toolchain via swiftly.
 
 ### Configuration
 
@@ -327,85 +352,108 @@ Info.plist                   — bundle metadata embedded into the wrapped .app 
 settings.toml                — runtime config template (TOML) — also shipped inside the .app bundle for first-launch auto-deploy
 schema/settings.schema.json  — JSON schema enforced by Taplo (`just check-config`)
 justfile                     — developer commands (`just`)
-mise.toml                    — pinned dev tool versions: just, taplo (mise)
+.envrc                       — `use flake` — direnv auto-loads the Nix dev shell on cd
+flake.nix                    — Nix flake: `package` (wrapped `.app` + `man/neomouse.1` install), `devShell` (aux tooling: just, taplo, shellcheck, actionlint, nixfmt, statix, deadnix), `formatter` (nixfmt-rfc-style), `checks` (nixfmt `--check` gate on flake.nix)
+flake.lock                   — pinned flake inputs
 .swift-format                — formatter / linter config
 .githooks/pre-commit         — lint staged Swift + run tests + check-config
 .github/workflows/ci.yml     — CI: lint + build + test on macos-15 (Swift 6.3 via swiftly) + Taplo schema check
-flake.nix / flake.lock       — Nix flake distribution
+AI_POLICY.md                 — how AI-assisted work is disclosed and reviewed
+REVIEW.md                    — whole-app human-review checklist (`just review` lists files still pending)
+CHANGELOG.md                 — notable changes, release by release
+man/neomouse.1               — man page (installed into `share/man/man1` by the flake package)
 scripts/release.sh           — cut a release (binary + tarball + tag + GitHub Release + brew tap bump + flake bump). Supports `DRY_RUN=1` for local-only artifact production
 scripts/setup-hooks.sh       — one-time hook activation
 scripts/test-hot-reload.sh   — live regression harness for SettingsWatcher (valid + invalid edits → log assertions; always restores settings.toml via shell trap)
+scripts/review-markers.sh    — lists files still carrying a "Human review needed" marker (backs `just review`)
 scripts/release-v0.0.1-prep/ — staging area for the Homebrew formula update that must land alongside v0.0.1 (.app bundle install block — kept out of the tap repo until release time so brew install neomouse against v0.0.0 doesn't break)
 
 Sources/neomouse/            — executable target: app shell, key event tap, modes, overlays, menus, settings
-  NeoMouseApp.swift          — @main entry, NeoMouseState, key/mouse/pasteboard monitors, mode dispatch, SettingsWatcher wiring
-  AppDelegate.swift          — applicationWillTerminate cleanup; .accessory activation policy
-  KeyEventTap.swift          — global CGEventTap install (defaultTap vs. listenOnly); AX + Input Monitoring permission prompts
-  CoreOperations.swift       — shared operation implementations (yank, paste, marks, visual, etc.) called from the key handler
-  SettingsWatcher.swift      — DispatchSource file watcher on the resolved settings.toml (debounced 250ms, atomic-save aware → re-decode → republish theme)
-  modes/visual.swift         — visual-mode exit + selection-state reset
-  ui/MenuBar.swift           — MenuBarExtra status item (mode-colored icon, dropdown actions incl. Settings…, Show Debug Log, Quit)
-  ui/SettingsWindow.swift    — NSWindow manager for the preferences panel (force-pauses neomouse on open)
-  ui/SettingsView.swift      — SwiftUI Form-based settings: Shared Font + per-element sections; ColorPicker / Stepper / Picker controls; live preview; Save (→ ThemeWriter) / Reset
-  ui/Theme+SwiftUI.swift     — ThemeColor / ThemeFont / ThemeMaterial / ThemeAnchor → SwiftUI Color / Font / Material / origin(in:panelSize:offsetX:offsetY:) bridges
-  ui/CommandLine.swift       — command-line overlay with wildmenu-style fuzzy suggestions
-  ui/HelpDialog.swift        — `?`-triggered keybind reference overlay
-  ui/KeyCast.swift           — keycast overlay
-  ui/GridOverlay.swift       — find-mode labelled grid (outer + inner divisions)
-  ui/NumbersOverlay.swift    — numbers / relativenumbers ruler + cursorline / cursorcolumn (gutter direction left/right, column-strip direction top/bottom)
-  ui/CursorSurroundedGridOverlay.swift — specialFind small grid around current cursor position
-  ui/VisualHighlightOverlay.swift — visual-mode selection rectangle
-  ui/MarksMenu.swift         — marks browser (`menu(window: .marks)`)
-  ui/RegisterMenu.swift      — Pasty-style register browser (`menu(window: .register)`)
-  ui/ToastManager.swift      — transient on-screen status toasts
-  ui/Alert.swift             — `showFatalAlertAndQuit` (NSAlert + Report Issue + quit)
+  App/NeoMouseApp.swift      — @main entry; static tap / monitor / observer / SettingsWatcher handles + app bootstrap
+  App/AppDelegate.swift      — .accessory activation policy; applicationWillTerminate cleanup
+  State/NeoMouseState.swift  — `@Published` observable model (mode + overlay flags); `@unchecked Sendable` (all mutations main-actor isolated)
+  Input/KeyEventTap.swift    — global CGEventTap install (defaultTap vs. listenOnly); AX + Input Monitoring permission prompts
+  Input/KeyEventContext.swift — per-keystroke derived-value bundle (cursor point, active display, ASCII-normalized chars, operation count) handed to the mode handlers
+  Input/KeyDispatch.swift    — `makeKeyHandler`: computes the context, handles the ⌘E enable/disable toggle, dispatches into the matching per-mode handler
+  Input/ExecutionPipeline.swift — `Command` (op + hook metadata) + `preHooks → action → postHooks` runner; after-hooks filter by CommandCategory (auto-snap, front_app_follows_mouse) — the #3 recording seam
+  Input/Handlers/NormalModeHandler.swift — normal-mode dispatch: Vim motion + visual + register / mark / window state machine
+  Input/Handlers/FindModeHandler.swift — find-mode grid + inner-cell selection
+  Input/Handlers/SpecialFindModeHandler.swift — one-shot dense cursor-surrounded grid find
+  Input/Handlers/CommandModeHandler.swift — `:command` buffer + wildmenu suggestion cycling
+  Input/Handlers/MenuModeHandler.swift — marks / register menu navigation
+  Input/Handlers/DisabledModeHandler.swift — no-op (disabled mode; ⌘E re-enable runs above the switch)
+  Operations/CoreOperations.swift — shared operation implementations (yank, paste, marks, visual, screenshot exclude-list) called from the handlers
+  Observers/SettingsWatcher.swift — DispatchSource file watcher on the resolved settings.toml (debounced, atomic-save aware → re-decode → republish theme)
+  Observers/PasteboardObserver.swift — clipboard watcher tied to activation (polls only while mode != .disabled); cycles numbered registers
+  Observers/VisualMouseMonitor.swift — installs / removes the visual-mode global mouse monitor on visual enter / exit
+  UI/Menus/MenuBar.swift     — MenuBarExtra status item (mode-colored icon, dropdown actions incl. Settings…, Show Debug Log, Quit)
+  UI/Menus/MarksMenu.swift   — marks browser (`menu(window: .marks)`)
+  UI/Menus/RegisterMenu.swift — Pasty-style register browser (`menu(window: .register)`)
+  UI/Overlays/GridOverlay.swift — find-mode labelled grid (outer + inner divisions)
+  UI/Overlays/CursorSurroundedGridOverlay.swift — specialFind small grid around current cursor position
+  UI/Overlays/NumbersOverlay.swift — numbers / relativenumbers ruler + cursorline / cursorcolumn
+  UI/Overlays/VisualHighlightOverlay.swift — visual-mode selection rectangle
+  UI/Overlays/KeyCast.swift  — keycast overlay
+  UI/Overlays/ToastManager.swift — transient on-screen status toasts
+  UI/CommandLine/CommandLine.swift — command-line overlay with wildmenu-style fuzzy suggestions
+  UI/CommandLine/HelpDialog.swift — `?`-triggered keybind reference overlay
+  UI/Settings/SettingsWindow.swift — NSWindow manager for the preferences panel (force-pauses neomouse on open)
+  UI/Settings/SettingsView.swift — SwiftUI Form-based settings: Shared Font + per-element sections; ColorPicker / Stepper / Picker controls; live preview; Save / Reset
+  UI/Shared/OverlayWindow.swift — shared borderless NSWindow base for the overlays
+  UI/Shared/Alert.swift      — `showFatalAlertAndQuit` (NSAlert + Report Issue + quit)
+  UI/Theme/Theme+SwiftUI.swift — ThemeColor / ThemeFont / ThemeMaterial / ThemeAnchor → SwiftUI Color / Font / Material / origin bridges
 
 Sources/neomouseUtils/       — library: input / screen / pasteboard / gesture / zoom helpers
-  mouse.swift                — `Mouse` namespace: location, moveToGlobal/Screen/Relative, click/down/up/drag
-  screen.swift               — `Screen` namespace: activeDisplays, currentSize, adjacentDisplayRectByDirection, allBoundingRect, cgToAppKit
-  pasteboard.swift           — `Pasteboard` namespace: get (richest content), watch (changeCount polling), dump (debug)
-  window.swift               — frontmost-app AX window introspection
-  zoom.swift                 — `Zoom` namespace: isCurrentlyZoomed, currentZoomFactor, zoomIn / zoomOut (macOS Accessibility Zoom)
-  screenshot.swift           — multi-display visual-mode capture via ScreenCaptureKit
-  motions.swift              — pure MotionTarget math (cell-center + insets) — unit-tested
-  hjkl.swift                 — pure direction → CGVector helper (unit-tested)
-  keyCodeToCharMap.swift     — keycode ↔ character lookup table
-  stringToInt.swift          — operation-count parsing
-  validation.swift           — config-time string validation
-  actions/gestures.swift     — `Gesture` namespace: pinchZoom, rotate, swipe, smartMagnify, scroll
-  actions/postGestureEvent.swift — low-level kCGEventGesture poster
-  actions/system.swift       — `System.simulate` (Cmd-C/V/X synthesis with sentinel userData)
-  helpers/isStringHasDuplicates.swift
-  dev/debug.swift            — gated debug logger (see Debug logging above)
+  Keyboard/hjkl.swift        — pure direction → CGVector helper (unit-tested)
+  Keyboard/keyCodeToCharMap.swift — keycode ↔ character lookup (current-input-source aware, ASCII-capable fallback)
+  Motion/motions.swift       — pure MotionTarget math (cell-center + insets) — unit-tested
+  Mouse/mouse.swift          — `Mouse` namespace: location, moveToGlobal/Screen/Relative, click/down/up/drag, frontmostAppUnder
+  Mouse/gestures.swift       — `Gesture` namespace: pinchZoom, rotate, swipe, smartMagnify, scroll
+  Mouse/postGestureEvent.swift — low-level kCGEventGesture poster (`GestureType` subtypes)
+  Mouse/zoom.swift           — `Zoom` namespace: isCurrentlyZoomed, currentZoomFactor, zoomIn / zoomOut (macOS Accessibility Zoom)
+  Screen/screen.swift        — `Screen` namespace: activeDisplays, currentSize, adjacentDisplayRectByDirection, allBoundingRect, cgToAppKit
+  Screen/screenshot.swift    — multi-display visual-mode capture via ScreenCaptureKit; `isTCCError` classifier
+  Screen/window.swift        — frontmost-app AX window introspection
+  System/pasteboard.swift    — `Pasteboard` namespace: getFirst (richest content), watch (changeCount polling), dump (debug)
+  System/system.swift        — `System.simulate` (Cmd-C/V/X synthesis with sentinel userData)
+  Support/debug.swift        — gated debug logger (see Debug logging above)
 
 Sources/neomouseDB/          — library: GRDB-backed store
   AppDatabase.swift          — schema bootstrap, dbQueue, initializeDB(forceReIntialize:)
   models/Session.swift       — Session (parent of all per-session data)
   models/Mark.swift          — vim-style marks (`ma` / `'a`) — upsert by (sessionId, mark); carries isVisual + start/end CGPoints
-  models/Register.swift      — vim-style registers storing `NSPasteboardItem` round-trips (flatten to `[typeRaw: Data]`, archive via NSKeyedArchiver); `cycleNumbered` maintains the `"1`–`"9` FIFO ring from the pasteboard watcher
+  models/Register.swift      — vim-style registers storing `NSPasteboardItem` round-trips; `cycleNumbered` maintains the `"1`–`"9` FIFO ring from the pasteboard watcher
   models/Macro.swift         — recorded key sequences
   models/Jump.swift          — cursor-position jump list
-  models/ExecutedOperation.swift — telemetry of every executed motion / gesture for analysis
+  models/ExecutedOperation.swift — telemetry of every executed motion / gesture (defines `OperationName` / `ModeName` / operation enums)
+  models/OperationName+Category.swift — total `OperationName` → `CommandCategory` mapping (no `default:` — new cases fail to compile until categorized) — #3
+  models/OperationRecorder.swift — `RecordedOperation` Sendable snapshot + off-critical-path persistence for the post-hook recording pipeline — #3
   models/dev/seed.swift      — `seedAll` for dev fixtures (gated by `NEOMOUSE_SEED=1`)
 
 Sources/neomouseConfig/      — library: TOMLDecoder → Config; LoadError; resolution paths
   config.swift               — Config struct, loadConfig, defaults
-  theme.swift                — `Config.Theme` + 9 element sub-themes (GridTheme, NumbersOverlayTheme, …); shared primitives ThemeColor / ThemeFont / ThemeAnchor / ThemeDirection / ThemeVerticalDirection / ThemeMaterial
-  strictDecoding.swift       — `validateKnownKeys` (rejects typoed TOML keys with friendly "Valid keys: …" message) + `decodeFriendlyEnum` (rejects typoed enum raw values with "expected one of: …") + `AnyCodingKey` permissive key helper
-  keymap.swift               — (WIP, currently fully commented) configurable keymap parser
+  strictDecoding.swift       — `validateKnownKeys` (rejects typoed TOML keys) + `decodeFriendlyEnum` (rejects typoed enum raw values) + `AnyCodingKey` permissive key helper
+  Theme/Theme.swift          — `Config.Theme` top-level container (one sub-theme property per UI element)
+  Theme/ElementThemes.swift  — the per-element sub-themes (GridTheme, NumbersOverlayTheme, …), each defaulted to the shipping appearance
+  Theme/ThemePrimitives.swift — shared theme value types (ThemeColor / ThemeFont / ThemeAnchor / …) + `tomlDouble` int/float coercion helper
 
 Sources/neomouseTypes/       — library: shared value types (kept import-light to avoid cycles)
   modes.swift                — `NeomouseType` namespace: Mode (disabled/normal/find/command/menu/specialFind), Direction, VisualState, MenuWindow, NormalModePendingOperation
+  commandCategory.swift      — `CommandCategory` enum (motion/visual/register/find/gesture/screen/…); GRDB-free so both DB and the hook pipeline can categorize
 
 Tests/neomouseTests/         — swift-testing (`import Testing`) suites
-  HJKLTests.swift            — direction → vector
-  MotionTargetsTests.swift   — cell-center coord math
-  ScreenTests.swift          — 5x5 grid suite for adjacentDisplayRectByDirection
-  PendingOpReducerTests.swift — normal-mode pending-operation state machine
-  KeyCodeMapTests.swift      — asciiChar contract + charToKeyCodeMap invariants + non-Latin layout fallback
+  Config/ConfigDecodingTests.swift — end-to-end `Config.loadConfig` decode + strict-validation failure modes
+  Config/ThemeColorTests.swift — `ThemeColor.parse` hex → 0..1 RGBA decoder
+  DB/DBModelTests.swift      — CRUD coverage for every GRDB model (serialized, fresh schema per test)
+  DB/OperationCategoryTests.swift — `OperationName` → `CommandCategory` mapping + operation-enum Codable encoding
+  Utils/HJKLTests.swift      — direction → vector
+  Utils/KeyCodeMapTests.swift — asciiChar contract + charToKeyCodeMap invariants + non-Latin layout fallback
+  Utils/MotionTargetsTests.swift — cell-center coord math
+  Utils/MouseTests.swift     — documents why `Mouse` side effects aren't unit-tested (logic is covered elsewhere)
+  Utils/PendingOpReducerTests.swift — normal-mode pending-operation state machine
+  Utils/ScreenshotTests.swift — `Screenshot.isTCCError` (-3801) classification
+  Utils/ScreenTests.swift    — 5x5 grid suite for adjacentDisplayRectByDirection
 ```
-
-Both `Sources/neomouse/old/` and `Sources/neomouseUtils/old/` hold superseded experiments (undotree, operation, findModeKeys, getTwoLetterPermutations) — not on the active code path; kept for reference until reimplementation lands.
 
 ## Status
 
@@ -418,3 +466,11 @@ Pre-built binaries are published on the [Releases page](https://github.com/Kanga
 ## License
 
 [GPL-3.0](LICENSE). Copyright © 2026 Samuel Wai Weng Yong.
+
+## Contributing & AI usage
+
+This project is built with AI assistance under a disclosed policy — see [AI_POLICY.md](AI_POLICY.md). AI-assisted contributions are welcome: they carry a *"Human review needed"* marker until a human confirms the content, and commits disclose the tool used.
+
+- [AI_POLICY.md](AI_POLICY.md) — how AI-assisted work is disclosed and reviewed.
+- [REVIEW.md](REVIEW.md) — the whole-app human-review checklist; run `just review` to list the files still pending review.
+- [CHANGELOG.md](CHANGELOG.md) — notable changes, release by release.
