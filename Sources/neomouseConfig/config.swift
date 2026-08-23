@@ -208,17 +208,17 @@ extension Config {
         }
     }
 
-    // Resolution order:
-    //   1. $NEOMOUSE_CONFIG (explicit override)
-    //   2. ~/.config/neomouse/settings.toml
-    //   3. ~/Library/Application Support/neomouse/settings.toml
-    public static var resolvedURL: URL? {
+    /// Resolution order:
+    ///   1. $NEOMOUSE_CONFIG (explicit override)
+    ///   2. ~/.config/neomouse/settings.toml
+    ///   3. ~/Library/Application Support/neomouse/settings.toml
+    public static var resolvedURLForExistingConfigFile: URL? {
         let fm = FileManager.default
         if let override = ProcessInfo.processInfo.environment["NEOMOUSE_CONFIG"],
             !override.isEmpty
         {
             let url = URL(fileURLWithPath: (override as NSString).expandingTildeInPath)
-            return fm.fileExists(atPath: url.path) ? url : nil
+            return (try? url.checkResourceIsReachable()) == true ? url : nil
         }
         let candidates: [URL] = [
             fm.homeDirectoryForCurrentUser
@@ -227,24 +227,69 @@ extension Config {
                 .first?
                 .appendingPathComponent("neomouse/settings.toml"),
         ].compactMap { $0 }
-        return candidates.first { fm.fileExists(atPath: $0.path) }
+        return candidates.first { (try? $0.checkResourceIsReachable()) == true }
+    }
+
+    ///   The Settings File/Dir does not exist, so we take from `resolvedURL`
+    ///   IMPORTANT: `url` is assumed to have already been `URL().standardizedFileURL`
+    ///   If the directory from `resolvedURL` does not exist create it
+    ///   If the file from `resolvedURL` does not exist create it
+    public static func createSettingsFile(at url: URL) -> Bool {
+        // INFO: Should never happen as this is to be called for a fallbackURL but just in case
+        // File already exists
+        guard (try? url.checkResourceIsReachable()) == true else {
+            return false
+        }
+        let fm = FileManager.default
+        let directoryPath = url.deletingLastPathComponent().path
+        // If withIntermediateDirectories: true (Recommended):
+        // Nothing happens. It succeeds quietly without throwing an error. If the directory (or any parent directory) already exists, Swift simply ignores it and continues.
+        //
+        // If withIntermediateDirectories: false:
+        // It throws an error. Specifically, it will throw CocoaError.fileWriteFileExists (Error 516).
+        try? fm.createDirectory(atPath: directoryPath, withIntermediateDirectories: true)
+        return fm.createFile(atPath: url.path, contents: nil)
     }
 
     public static func loadConfig(from url: URL) throws(LoadError) -> Config {
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            throw .fileNotFound(url)
-        }
         let text: String
+
         do {
+            // 1. Read directly into a String (single disk read)
             text = try String(contentsOf: url, encoding: .utf8)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            // 2. Catch the specific "file not found" error cleanly
+            throw .fileNotFound(url)
         } catch {
+            // 3. Catch any other read/permission errors
             throw .readFailed(url, underlying: error)
         }
+
         let decoder = TOMLDecoder(strategy: .init(key: .convertFromSnakeCase))
+
         do {
+            // 4. Decode
             return try decoder.decode(Config.self, from: text)
         } catch {
             throw .decodeFailed(url, underlying: error)
         }
+    }
+
+    public static func loadDefaultConfig() throws(LoadError) -> Config {
+        let defaultConfig = URL(fileURLWithPath: "../../settings.toml")
+        let text: String
+        do {
+            text = try String(contentsOf: defaultConfig, encoding: .utf8)
+        } catch {
+            throw .readFailed(defaultConfig, underlying: error)
+        }
+        let decoder = TOMLDecoder(strategy: .init(key: .convertFromSnakeCase))
+
+        do {
+            return try decoder.decode(Config.self, from: text)
+        } catch {
+            throw .decodeFailed(defaultConfig, underlying: error)
+        }
+
     }
 }

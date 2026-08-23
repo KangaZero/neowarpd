@@ -183,7 +183,7 @@ public struct CommandLineTheme: Decodable, Sendable {
     public init(
         anchor: ThemeAnchor = .bottom,
         xOffset: Double = 0,
-        yOffset: Double = 100,
+        yOffset: Double = 50,
         width: Double = 420,
         height: Double = 60,
         cornerRadius: Double = 8,

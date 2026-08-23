@@ -29,7 +29,7 @@ final class SettingsWatcher {
 
     init(onReload: @escaping (Result<Config, Config.LoadError>) -> Void) {
         self.onReload = onReload
-        guard let url = Config.resolvedURL else {
+        guard let url = Config.resolvedURLForExistingConfigFile else {
             debug(
                 "SettingsWatcher: no resolvedURL — hot reload disabled until a settings.toml exists at a resolved path"
             )
@@ -72,7 +72,7 @@ final class SettingsWatcher {
             source = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(75)) { [weak self] in
                 guard let self else { return }
-                if let url = Config.resolvedURL {
+                if let url = Config.resolvedURLForExistingConfigFile {
                     self.startWatching(url: url)
                 }
                 self.scheduleReload()
@@ -93,7 +93,7 @@ final class SettingsWatcher {
     }
 
     private func performReload() {
-        guard let url = Config.resolvedURL else { return }
+        guard let url = Config.resolvedURLForExistingConfigFile else { return }
         do {
             let config = try Config.loadConfig(from: url)
             onReload(.success(config))
@@ -126,7 +126,7 @@ extension NeoMouse {
                 switch result {
                 case .success(let config):
                     appState.reload(from: config)
-                    debug("SettingsWatcher: reloaded \(Config.resolvedURL?.path ?? "<unknown>")")
+                    debug("SettingsWatcher: reloaded \(Config.resolvedURLForExistingConfigFile?.path ?? "<unknown>")")
                     ToastManager.shared.show("Reloaded settings.toml")
                 case .failure(let error):
                     debug("SettingsWatcher: reload failed — \(error)")

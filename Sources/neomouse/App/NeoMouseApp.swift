@@ -37,7 +37,7 @@ struct NeoMouse: App {
         // No-op when the user already has a settings.toml there.
         deployBundledDefaultsIfMissing()
 
-        guard let url = Config.resolvedURL else {
+        guard let url = Config.resolvedURLForExistingConfigFile else {
             debug("No settings.toml found at any resolved path; using built-in defaults")
             return NeoMouseState()
         }

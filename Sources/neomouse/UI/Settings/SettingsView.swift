@@ -152,7 +152,15 @@ enum ThemeWriter {
     /// Returns nil on success, or a short error message for surfacing in a
     /// toast. Writes are atomic (write to temp, rename over).
     static func persist(_ theme: Config.Theme) -> String? {
-        guard let url = Config.resolvedURL else {
+        // Write to fallbackURL if file does not exist
+        guard let url = Config.resolvedURLForExistingConfigFile else {
+            let configFileEnv =
+                ProcessInfo.processInfo.environment["NEOMOUSE_CONFIG"]
+                ?? FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".config/neomouse/settings.toml").path
+            let fallbackURL = URL(fileURLWithPath: (configFileEnv as NSString).expandingTildeInPath).standardizedFileURL
+            debug(fallbackURL, type: .log)
+            //TODO change to notify defaulting to
             return "no settings.toml found at any resolved path"
         }
         let existing: String
@@ -382,7 +390,7 @@ enum ConfigWriter {
     /// Persist `[configuration].is_auto_snap`. Returns nil on success or a
     /// short error string for surfacing in a toast / the Settings action bar.
     static func persistConfiguration(_ value: Bool, _ keyInSnakeCase: String) -> String? {
-        guard let url = Config.resolvedURL else {
+        guard let url = Config.resolvedURLForExistingConfigFile else {
             return "no settings.toml found at any resolved path"
         }
         let existing: String
@@ -547,8 +555,10 @@ struct SettingsView: View {
                 }
                 saveResult =
                     errors.isEmpty
-                    ? "Saved to ~/.config/neomouse/settings.toml"
+                    ? "Saved"
                     : "Save failed: \(errors.joined(separator: "; "))"
+                //TODO add notification as well, and just have "save failed" for the above
+
             }
             .keyboardShortcut("s", modifiers: .command)
             .buttonStyle(.borderedProminent)

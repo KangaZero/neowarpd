@@ -33,6 +33,15 @@ import Foundation
 // All env-var checks are evaluated once at module load; per-call overhead is
 // a Bool check plus formatting.
 
+/// For `debug` func's `type` to output in different colors
+/// types: `error`, `warning`, `log`, `trace`
+public enum DebugType {
+    case error
+    case warning
+    case log
+    case trace
+}
+
 private func isTruthy(_ value: String?) -> Bool {
     guard let value, !value.isEmpty else { return false }
     return value != "0" && value.lowercased() != "false"
@@ -109,7 +118,8 @@ private let logFileHandle: FileHandle? = {
     }
 }()
 
-//INFO: There is also this way of formatting: https://stackoverflow.com/questions/50712354/converting-utc-date-time-to-local-date-time-in-ios
+/// INFO: There is also this way of formatting: https://stackoverflow.com/questions/50712354/converting-utc-date-time-to-local-date-time-in-ios
+/// Outputs like: `21:55:39`
 private func formatDateToLocaleTime(date: Date) -> String {
     let dateFormatter = DateFormatter()
     dateFormatter.locale = Locale.current
@@ -117,14 +127,34 @@ private func formatDateToLocaleTime(date: Date) -> String {
     return dateFormatter.string(from: date)
 }
 
-public func debug(_ message: Any...) {
+//TODO: Consider in the future to output errors to stderr
+//import Foundation
+//
+// struct StandardErrorOutputStream: TextOutputStream {
+//     func write(_ string: String) {
+//         FileHandle.standardError.write(Data(string.utf8))
+//     }
+// }
+//
+// var standardError = StandardErrorOutputStream()
+//
+// // Now you can use standard print formatting, and it goes to stderr!
+// print("Warning: The file could not be found.", to: &standardError)
+
+/// if `stdoutEnabled` it will do `print()` but with current local timestamp + `message` colorized/// based on `type` (if provided, else default terminal text color)
+/// if `logFileHandle` it will append what would be in print() to the `currentLogFileURL` file
+public func debug(_ message: Any..., type: DebugType? = nil) {
     guard stdoutEnabled || logFileHandle != nil else { return }
 
+    let DebugHelper = DebugHelper.init()
+
     let timestamp = formatDateToLocaleTime(date: Date())
+    let color = DebugHelper.colorCode(type)
+    let defaultColor = DebugHelper.defaultColorCode
     let line = "date: \(timestamp)\n \(message)"
 
     if stdoutEnabled {
-        print(line)
+        print("\(color)\(line)\(defaultColor)")
     }
 
     if let handle = logFileHandle, let data = (line + "\n").data(using: .utf8) {
