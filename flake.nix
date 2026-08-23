@@ -1,127 +1,128 @@
 {
-  description = "neomouse — Vim-motion mouse control daemon for macOS";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Support a particular subset of the Nix systems
+    systems = {
+      url = "github:nix-systems/default";
+    };
+
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
 
   outputs =
-    { self, nixpkgs }:
+    {
+      self,
+      nixpkgs,
+      systems,
+      ...
+    }@inputs:
     let
-      version = "0.0.1";
-
-      # Both Mac families. The release tarball is a UNIVERSAL binary (arm64 +
-      # x86_64), so every system fetches the *same* artifact with the *same*
-      # hash — no per-system url/hash split needed.
-      #
-      # Everything here is darwin-only on purpose: neomouse builds only on
-      # macOS, and exposing Linux outputs would make `nix flake check
-      # --all-systems` (run on the macOS CI runner) try to build them and fail.
-      systems = [
-        "aarch64-darwin"
-        "x86_64-darwin"
-      ];
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
-
-      mkNeomouse =
-        pkgs:
-        pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
-          pname = "neomouse";
-          inherit version;
-
-          # Wraps the pre-built, ad-hoc-signed release binary so users don't
-          # need a Swift toolchain or Xcode. `finalAttrs.version` drives the
-          # url and the changelog link, so a bump only touches `version` +
-          # `hash` — `scripts/release.sh` rewrites both each release. The
-          # "-macos-universal" tarball runs on both arm64 + x86_64.
-          src = pkgs.fetchurl {
-            url = "https://github.com/KangaZero/neomouse/releases/download/v${finalAttrs.version}/neomouse-v${finalAttrs.version}-macos-universal.tar.gz";
-            # Placeholder until the v${version} release is published;
-            # scripts/release.sh (and release.yml) rewrite this to the real
-            # hash. `nix flake check` only *evaluates* the derivation, so this
-            # stays green pre-release — a full `nix build` needs the tarball.
-            hash = nixpkgs.lib.fakeHash;
-          };
-
-          # The tarball expands to `neomouse.app/` at the root (Contents/
-          # Info.plist, Contents/MacOS/neomouse).
-          sourceRoot = ".";
-
-          # SwiftUI's MenuBarExtra status item only registers when
-          # LaunchServices can read CFBundleIdentifier from a .app/Contents/
-          # Info.plist — a bare-binary install won't show the menu-bar icon.
-          # So we install the whole .app under $out/Applications/ and symlink
-          # the inner binary into $out/bin/ so `neomouse` is on PATH. The man
-          # page comes from the flake source (`self`), independent of the
-          # release tarball, so `man neomouse` works on the Nix install path.
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/Applications"
-            cp -R neomouse.app "$out/Applications/"
-            mkdir -p "$out/bin"
-            ln -s "$out/Applications/neomouse.app/Contents/MacOS/neomouse" "$out/bin/neomouse"
-            install -Dm444 ${self}/man/neomouse.1 "$out/share/man/man1/neomouse.1"
-            runHook postInstall
-          '';
-
-          meta = {
-            description = "Vim-motion mouse control daemon for macOS";
-            homepage = "https://github.com/KangaZero/neomouse";
-            changelog = "https://github.com/KangaZero/neomouse/releases/tag/v${finalAttrs.version}";
-            license = pkgs.lib.licenses.gpl3Only;
-            platforms = pkgs.lib.platforms.darwin;
-            mainProgram = "neomouse";
-          };
-        });
-
-      # Auxiliary dev tooling NOT provided by the Xcode/Swift toolchain. `swift`
-      # itself (build / test / format) comes from Xcode or swiftly — see README.
-      devTools =
-        pkgs: with pkgs; [
-          just
-          taplo
-          shellcheck
-          actionlint
-          nixfmt-rfc-style
-          statix
-          deadnix
-        ];
+      forEachSystem =
+        f: nixpkgs.lib.genAttrs (import systems) (system: f system nixpkgs.legacyPackages.${system});
     in
     {
-      packages = forAllSystems (pkgs: {
-        default = mkNeomouse pkgs;
-      });
+      checks = forEachSystem (
+        system: pkgs: {
+          pre-commit-check = inputs.git-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              # Nix hygiene.
+              nixfmt.enable = true;
+              # statix.enable = true;
+              # deadnix.enable = true;
 
-      apps = forAllSystems (pkgs: {
-        default = {
-          type = "app";
-          program = "${mkNeomouse pkgs}/bin/neomouse";
-        };
-      });
+              just-hook = {
+                enable = true;
+                name = "just hook";
+                entry = "${pkgs.writeShellScriptBin "just-hook" ''
+                                    IDK why but adding pkgs.swift and even after removal will point these 2 env variables to the nix store... even after a rebuild it still remains
+                                    unset SDKROOT
+                                    unset DEVELOPER_DIR
+                  		  just check
+                ''}/bin/just-hook";
+                # entry = "${pkgs.writeShellScriptBin "just-hook" ''
+                #   just review-count
+                #   # Nudge only (never blocks the commit): remind to refresh the
+                #   # README image when UI files are staged. Screenshot stays a
+                #   # manual `just screenshot` so PNG blobs don't bloat git history.
+                #   if git diff --cached --name-only | grep -qE '^(app|components)/'; then
+                #     echo "note: UI files staged - refresh the README image with: just screenshot"
+                #   fi
+                # ''}/bin/just-hook";
+                language = "system";
+                pass_filenames = false;
+                always_run = true;
+                stages = [ "pre-commit" ];
+              };
+              #
+              # Pre-push guard: reject any incoming commit whose author OR
+              # committer is not the personal identity. Keeps work identity out
+              # of this repo's history for good.
+              # TODO If there eventually will be more than a single person import email dynamically
+              check-author = {
+                enable = true;
+                name = "check git author";
+                # writeShellScriptBin puts the binary at $out/bin/<name>, so the
+                # entry must suffix /bin/check-author (the drv alone is $out).
+                entry = "${pkgs.writeShellScriptBin "check-author" ''
+                  expected="samuelyongw@gmail.com"
+                  zero="0000000000000000000000000000000000000000"
+                  while IFS=' ' read -r _local_ref local_sha _remote_ref remote_sha; do
+                    # Skip branch deletions.
+                    [ "$local_sha" = "$zero" ] && continue
 
-      devShells = forAllSystems (pkgs: {
-        default = pkgs.mkShell {
-          packages = devTools pkgs;
-          # Auto-activate the repo's git hooks on shell entry (idempotent), so
-          # `direnv allow` / `nix develop` is all a contributor needs — no
-          # separate `scripts/setup-hooks.sh` step. Swift itself is not in this
-          # shell; it comes from Xcode / swiftly.
-          shellHook = ''
-            if [ "$(git config --get core.hooksPath 2>/dev/null)" != ".githooks" ]; then
-              git config core.hooksPath .githooks 2>/dev/null || true
-            fi
-            echo "neomouse dev shell — aux tooling ready (just, taplo, shellcheck, actionlint, nixfmt, statix, deadnix)."
-            echo "Swift toolchain comes from Xcode/swiftly, not this shell. Run 'just' for recipes."
-          '';
-        };
-      });
+                    # Isolate only the new incoming commits.
+                    if [ "$remote_sha" = "$zero" ]; then
+                      commits=$(git rev-list "$local_sha" --not --remotes 2>/dev/null)
+                    else
+                      commits=$(git rev-list "$remote_sha..$local_sha" 2>/dev/null)
+                    fi
 
-      formatter = forAllSystems (pkgs: pkgs.nixfmt-rfc-style);
+                    [ -z "$commits" ] && continue
 
-      checks = forAllSystems (pkgs: {
-        # Pure, tarball-free gate: assert flake.nix stays nixfmt-formatted.
-        nixfmt = pkgs.runCommand "nixfmt-check" { nativeBuildInputs = [ pkgs.nixfmt-rfc-style ]; } ''
-          nixfmt --check ${self}/flake.nix
-          touch "$out"
-        '';
-      });
+                    while IFS= read -r commit; do
+                      IFS='|' read -r author_email committer_email <<< "$(git log -1 --format="%ae|%ce" "$commit" 2>/dev/null)"
+
+                      if [ "$author_email" != "$expected" ]; then
+                        echo "Push rejected: $commit not authored by KangaZero <$expected> (got: $author_email)"
+                        exit 1
+                      fi
+                      if [ "$committer_email" != "$expected" ]; then
+                        echo "Push rejected: $commit not committed by KangaZero <$expected> (got: $committer_email)"
+                        exit 1
+                      fi
+                    done <<< "$commits"
+                  done
+                ''}/bin/check-author";
+                language = "system";
+                pass_filenames = false;
+                always_run = true;
+                stages = [ "pre-push" ];
+              };
+            };
+          };
+        }
+      );
+
+      devShells = forEachSystem (
+        system: pkgs: {
+          default = pkgs.mkShell {
+            # shellHook = installs the git pre-commit hook defined above.
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+
+            packages = [
+              pkgs.taplo
+              pkgs.just
+              # swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+              # Target: arm64-apple-macosx26.0
+            ]
+            ++ self.checks.${system}.pre-commit-check.enabledPackages;
+          };
+        }
+      );
     };
 }

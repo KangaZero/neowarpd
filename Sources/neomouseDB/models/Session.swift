@@ -90,7 +90,7 @@ public struct Session: Codable, Identifiable, FetchableRecord, MutablePersistabl
     /// // Just bump updatedAt
     /// updateSession(at: 1)
     /// ```
-    public static func update(at sessionId: Int64, newSessionName: String?) {
+    public static func updateName(at sessionId: Int64, newSessionName: String?) {
         do {
             try dbQueue.write { db in
                 guard var session = try Session.filter(Session.Columns.id == sessionId).fetchOne(db) else {

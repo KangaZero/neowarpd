@@ -15,7 +15,7 @@ let package = Package(
         // Apple's swift-testing — bundled with full Xcode but not the bare
         // Command Line Tools install, so declare explicitly to keep tests
         // portable across toolchains.
-        .package(url: "https://github.com/swiftlang/swift-testing", exact: "6.3.1"),
+        .package(url: "https://github.com/swiftlang/swift-testing", exact: "6.3.2"),
     ],
 
     targets: [
