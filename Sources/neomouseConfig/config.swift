@@ -8,7 +8,7 @@ import neomouseTypes
 // (`let`) properties of `NeoMouseState`, plus `gridInset` which is declared
 // `@Published` but never reassigned. Runtime/observable state (mode, visual
 // selection coordinates, etc.) stays on `NeoMouseState`.
-//
+
 // TOML keys are snake_case; properties are camelCase via TOMLDecoder's
 // `.convertFromSnakeCase` strategy.
 public struct Config: Decodable, Sendable {

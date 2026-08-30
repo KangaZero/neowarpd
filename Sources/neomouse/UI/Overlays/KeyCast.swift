@@ -64,6 +64,10 @@ final class KeyCast {
         }
         if KeyCast.pendingText(for: mode) != nil {
             show()
+            //TODO Consider making this a configurable setting
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.window?.orderOut(nil)
+            }
         } else {
             hide()
         }
@@ -90,9 +94,14 @@ final class KeyCast {
             panel.level = .floating
             panel.backgroundColor = .clear
             panel.isOpaque = false
-            panel.hasShadow = true
+            panel.hasShadow = false
+            panel.animationBehavior = .utilityWindow
+            panel.becomesKeyOnlyIfNeeded = true
             panel.ignoresMouseEvents = true
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            panel.collectionBehavior = [
+                .canJoinAllSpaces,  // Shows on every desktop Space
+                .fullScreenAuxiliary,  // Remains visible over full-screen apps
+            ]
             panel.contentView = NSHostingView(rootView: KeyCastView(state: appState))
             window = panel
         }
@@ -113,7 +122,7 @@ final class KeyCast {
 
     /// String to display for a given mode, or nil to hide the pill entirely.
     /// Format mirrors vim's showcmd: count first, then operator/pending key
-    /// (e.g. "5gg", "10 " for `10<Space>`, "\"a" for register selection).
+    /// (e.g. "5gg", "10 " for `10<Special>`, "\"a" for register selection).
     /// Only normal mode contributes — find/command/menu have their own
     /// dedicated overlays and would be redundant here.
     fileprivate static func pendingText(for mode: NeomouseType.Mode) -> String? {

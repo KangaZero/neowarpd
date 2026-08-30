@@ -53,6 +53,7 @@ final class ToastManager {
         panel.orderFront(nil)
         window = panel
 
+        //TODO Consider making this a configurable setting
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
             self?.window?.close()
             self?.window = nil
